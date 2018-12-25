@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/pkg/errors"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"strconv"
 	"strings"
@@ -18,9 +18,15 @@ func Processing() error {
 	if err != nil {
 		return errors.Wrap(err, "Error creating db object")
 	}
+
 	log.Println("Start process handling routine....")
 	conn := db.GetConnection()
-	defer conn.Close()
+	defer func() {
+		err := conn.Close()
+		if err != nil {
+			log.Fatalf("Error closing connection!")
+		}
+	}()
 
 	//This query includes : 1. active = 1 2. At least start or end date is assigned 3. date < end 4. date > start
 	queryString := `select bs.id, bs.start_date as start, bs.end_date as end, bm.message as message, bs.message_id as message_id, CONVERT_TZ(bs.last_run, '+00:00', '+08:00') as last_run, bs.recursive_day_in_month as day_in_month, bs.recursive_day_in_week as day_in_week, bs.broadcast_time, bbc.webhook
@@ -35,7 +41,7 @@ and (bs.end_date is null or bs.end_date > CONVERT_TZ(NOW(), '+00:00', '+08:00'))
 	if err != nil {
 		return errors.Wrap(err, "Error in QueryToMap")
 	}
-	log.Printf("Evaluating %d items...", len(result))
+	log.Debugf("Evaluating %d items...", len(result))
 	for _, entry := range result {
 		//output := "Evaluating : "
 		//for key, value := range entry {
@@ -43,7 +49,6 @@ and (bs.end_date is null or bs.end_date > CONVERT_TZ(NOW(), '+00:00', '+08:00'))
 		//	output += fmt.Sprintf("%s : %s ", key, value)
 		//}
 		//log.Println(output)
-
 
 		_, err = tryBroadcast(entry, conn)
 		if err != nil {
@@ -82,15 +87,15 @@ func tryBroadcast(broadcastItem Utilities.RowResult, conn *sql.DB) (int, error) 
 	//If it is executed in 24 hours, skip. It means today's broadcast have been done
 	if broadcastItem["last_run"] != nil {
 		last := fmt.Sprintf(string(broadcastItem["last_run"].([]byte)))
-		last_time, err := time.Parse("2006-01-02 15:04:05", last)
+		lastTime, err := time.Parse("2006-01-02 15:04:05", last)
 		if err != nil {
 			return 0, errors.Wrap(err, "Error parsing last_run!")
 		}
 
-		if currentTime.Sub(last_time).Hours() < 24 {
+		if currentTime.Sub(lastTime).Hours() < 24 {
 			return 0, nil
 		}
-		println(currentTime.Sub(last_time).Hours())
+		println(currentTime.Sub(lastTime).Hours())
 	}
 	//check day of month and day of week
 	if broadcastItem["day_in_week"] != nil {
@@ -100,7 +105,7 @@ func tryBroadcast(broadcastItem Utilities.RowResult, conn *sql.DB) (int, error) 
 			return 0, errors.Wrap(err, "Error parsing day_in_week!")
 		}
 
-		if res != int(currentTime.Weekday()){
+		if res != int(currentTime.Weekday()) {
 			return 0, nil
 		}
 	}
@@ -117,15 +122,19 @@ func tryBroadcast(broadcastItem Utilities.RowResult, conn *sql.DB) (int, error) 
 		}
 	}
 
-
 	//do broadcast
 	log.Println("Posting " + string(broadcastItem["message"].([]byte)) + " to " + string(broadcastItem["webhook"].([]byte)))
-	outgoing := "{\"text\":\"" + string(broadcastItem["message"].([]byte))+ "\"}"
+	outgoing := "{\"text\":\"" + string(broadcastItem["message"].([]byte)) + "\"}"
 	response, err := http.Post(getContextAsString(broadcastItem, "webhook"), "application/json", strings.NewReader(outgoing))
 	if err != nil {
 		return 0, errors.Wrap(err, "Error posting to channel!")
 	}
-	defer response.Body.Close()
+	defer func() {
+		err := response.Body.Close()
+		if err != nil {
+			log.Errorf("Error while closing response!")
+		}
+	}()
 	//fmt.Println(ioutil.ReadAll(response.Body))
 
 	//update last run in both schedule and msg
@@ -151,11 +160,11 @@ func StartBroadcaster() {
 	for {
 		ticker := time.NewTicker(time.Minute)
 		select {
-			case <-ticker.C:
-				err := Processing()
-				if err != nil {
-					log.Fatal(err)
-				}
+		case <-ticker.C:
+			err := Processing()
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
 }
