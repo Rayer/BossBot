@@ -16,9 +16,11 @@ func (CustomFormatter) Format(entry *log.Entry) ([]byte, error) {
 }
 
 func main() {
+	conf, _ := BossBot.CreateConfigurationFromFile()
 	log.SetReportCaller(true)
-	log.SetLevel(log.DebugLevel)
+	log.SetLevel(log.Level(conf.LogLevel))
 	log.SetOutput(os.Stdout)
 	log.SetFormatter(&CustomFormatter{})
-	BossBot.StartBroadcaster()
+	log.Printf("Start BossBot with configuration : %+v\n", *conf)
+	BossBot.StartBroadcaster(*conf)
 }
