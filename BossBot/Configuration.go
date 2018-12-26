@@ -23,6 +23,7 @@ func CreateConfigurationFromFile() (*Configuration, error) {
 	}
 
 	viper.SetDefault("SqlPort", 3306)
+	viper.SetDefault("PIDFilePath", ".")
 
 	//Stupid.... can we do better?
 	conf := &Configuration{}

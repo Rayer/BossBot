@@ -2,6 +2,7 @@ package main // import "BossBotApp"
 
 import (
 	"BossBot"
+	"Utilities"
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"os"
@@ -22,5 +23,8 @@ func main() {
 	log.SetOutput(os.Stdout)
 	log.SetFormatter(&CustomFormatter{})
 	log.Printf("Start BossBot with configuration : %+v\n", *conf)
-	BossBot.StartBroadcaster(*conf)
+	Utilities.ExecuteCode(conf.PIDFilePath, func() {
+		BossBot.StartBroadcaster(*conf)
+	})
+
 }
