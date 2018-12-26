@@ -2,16 +2,19 @@ package BossBot
 
 import (
 	"fmt"
+	"github.com/nlopes/slack"
 	"github.com/spf13/viper"
 )
 
 type Configuration struct {
-	LogLevel    uint32
-	SqlHost     string
-	SqlPort     uint32
-	SqlAcc      string
-	SqlPass     string
-	PIDFilePath string
+	LogLevel      uint32
+	SqlHost       string
+	SqlPort       uint32
+	SqlAcc        string
+	SqlPass       string
+	PIDFilePath   string
+	SlackBotToken string
+	SlackClient   *slack.Client
 }
 
 func CreateConfigurationFromFile() (*Configuration, error) {
@@ -33,6 +36,9 @@ func CreateConfigurationFromFile() (*Configuration, error) {
 	conf.SqlPort = uint32(viper.GetInt32("SqlPort"))
 	conf.SqlAcc = viper.GetString("SqlAcc")
 	conf.SqlPass = viper.GetString("SqlPass")
+	conf.SlackBotToken = viper.GetString("SlackBotToken")
+
+	conf.SlackClient = slack.New(conf.SlackBotToken)
 
 	return conf, nil
 }
