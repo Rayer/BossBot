@@ -11,7 +11,7 @@ import (
 type CustomFormatter struct{}
 
 func (CustomFormatter) Format(entry *log.Entry) ([]byte, error) {
-	ret := fmt.Sprintf("[%s] (%s) : %s", entry.Level.String(), entry.Time.Format(time.RFC3339), entry.Message)
+	ret := fmt.Sprintf("[%s]\t (%s) : %s\n", entry.Level.String(), entry.Time.Format(time.RFC3339), entry.Message)
 	return []byte(ret), nil
 }
 
@@ -20,15 +20,17 @@ func TestProcessing(t *testing.T) {
 	log.SetLevel(log.DebugLevel)
 	log.SetOutput(os.Stdout)
 	log.SetFormatter(&CustomFormatter{})
+	conf, _ := CreateConfigurationFromFile()
 
 	log.Debugf("Start testing TestProcessing")
 
-	err := Processing()
+	err := Processing(*conf)
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestStartBroadcaster(t *testing.T) {
-	StartBroadcaster()
+	conf, _ := CreateConfigurationFromFile()
+	StartBroadcaster(*conf)
 }

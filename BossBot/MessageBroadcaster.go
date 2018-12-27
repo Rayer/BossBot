@@ -4,17 +4,20 @@ import (
 	"Utilities"
 	"database/sql"
 	"fmt"
+	"github.com/nlopes/slack"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"net/http"
 	"strconv"
-	"strings"
 	"time"
 )
 
+var config Configuration
+
 func Processing(conf Configuration) error {
 
-	db, err := Utilities.CreateDBObject(conf.SqlHost, conf.SqlAcc, conf.SqlPass)
+	config = conf
+
+	db, err := Utilities.CreateDBObject(config.SqlHost, config.SqlAcc, config.SqlPass)
 	if err != nil {
 		return errors.Wrap(err, "Error creating db object")
 	}
@@ -122,21 +125,19 @@ func tryBroadcast(broadcastItem Utilities.RowResult, conn *sql.DB) (int, error) 
 	}
 
 	//do broadcast
+	webhookUrl := getContextAsString(broadcastItem, "webhook")
+	message := getContextAsString(broadcastItem, "message")
 	log.Println("Posting " + string(broadcastItem["message"].([]byte)) + " to " + string(broadcastItem["webhook"].([]byte)))
-	outgoing := "{\"text\":\"" + string(broadcastItem["message"].([]byte)) + "\"}"
-	response, err := http.Post(getContextAsString(broadcastItem, "webhook"), "application/json", strings.NewReader(outgoing))
+
+	outgoing := slack.WebhookMessage{
+		Text: message,
+	}
+	err = slack.PostWebhook(webhookUrl, &outgoing)
+
 	if err != nil {
 		return 0, errors.Wrap(err, "Error posting to channel!")
 	}
-	defer func() {
-		err := response.Body.Close()
-		if err != nil {
-			log.Errorf("Error while closing response!")
-		}
-	}()
-	//fmt.Println(ioutil.ReadAll(response.Body))
 
-	//update last run in both schedule and msg
 	id := getContextAsString(broadcastItem, "id")
 	last_run_sql := fmt.Sprintf("update bb_broadcast_schedule set last_run = CONVERT_TZ(Now(), '+00:00', '+08:00') where id = %s;", id)
 	_, err = conn.Exec(last_run_sql)
