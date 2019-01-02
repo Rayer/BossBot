@@ -1,6 +1,0 @@
-LogLevel: 7
-SqlHost: node.rayer.idv.tw
-SqlPort: 3306
-SqlAcc: acc
-SqlPass: 12qw34er
-PIDFilePath: /var/run/
