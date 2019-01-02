@@ -77,7 +77,7 @@ func tryBroadcast(broadcastItem Utilities.RowResult, conn *sql.DB) (int, error) 
 	//log.Println("Using local time : " + currentTime.String())
 	y, m, d := currentTime.Date()
 	broadcast := fmt.Sprintf("%d %s %d %s +0800 CST", y, m.String()[0:3], d, string(broadcastItem["broadcast_time"].([]byte)))
-	broadcast_time, err := time.Parse("2006 Jan 02 15:04:05 -0700 MST", broadcast)
+	broadcast_time, err := time.Parse("2006 Jan _2 15:04:05 -0700 MST", broadcast)
 	if err != nil {
 		return 0, errors.Wrap(err, "Error parsing time")
 	}
