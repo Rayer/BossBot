@@ -6,6 +6,7 @@ replace Utilities v0.0.0 => ../Utilities
 
 require (
 	Utilities v0.0.0
+	github.com/go-sql-driver/mysql v1.4.1
 	github.com/gorilla/websocket v1.4.0 // indirect
 	github.com/nlopes/slack v0.4.0
 	github.com/sirupsen/logrus v1.2.0

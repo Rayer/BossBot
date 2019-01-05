@@ -23,7 +23,7 @@ func CreateDBObject(host string, user string, passwd string) (*DBObject, error) 
 		Passwd: passwd,
 	}
 
-	ret.conn_string = fmt.Sprintf("%s:%s@tcp(%s)/apps", user, passwd, host)
+	ret.conn_string = fmt.Sprintf("%s:%s@tcp(%s)/apps?charset=utf8&loc=Asia%%2FTaipei&parseTime=true", user, passwd, host)
 
 	db, err := sql.Open("mysql", ret.conn_string)
 	log.Debugf("Attempting logging in with Server String : %s", ret.conn_string)
