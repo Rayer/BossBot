@@ -89,8 +89,8 @@ func tryBroadcast(broadcastItem Utilities.RowResult, conn *sql.DB) (int, error) 
 	//Basic concept is :
 	//If it is executed in 24 hours, skip. It means today's broadcast have been done
 	if broadcastItem["last_run"] != nil {
-		last := fmt.Sprintf(string(broadcastItem["last_run"].([]byte)))
-		lastTime, err := time.Parse("2006-01-02 15:04:05", last)
+		lastTime := broadcastItem["last_run"].(time.Time)
+		//lastTime, err := time.Parse("2006-01-02 15:04:05", last)
 		if err != nil {
 			return 0, errors.Wrap(err, "Error parsing last_run!")
 		}

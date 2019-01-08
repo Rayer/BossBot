@@ -15,5 +15,5 @@ func TestDBReflect(t *testing.T) {
 		log.Fatal(err)
 	}
 	ret, err := dm.GetBroadcastList()
-	t.Logf("%+v", ret)
+	t.Logf("%v", ret)
 }
