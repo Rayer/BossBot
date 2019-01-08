@@ -70,7 +70,7 @@ func (bc *BroadcastItem) StringForSlackItem() string {
 	ret += fmt.Sprintf("Broadcast at : %s\n", bc.BroadcastTime)
 
 	if bc.WeekDay.Valid {
-		ret += fmt.Sprintf("Recursive in weekday : %s\n", time.Weekday(bc.Day.Int64))
+		ret += fmt.Sprintf("Recursive in weekday : %s\n", time.Weekday(bc.WeekDay.Int64))
 	}
 
 	if bc.Day.Valid {
