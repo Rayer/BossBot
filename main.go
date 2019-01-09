@@ -24,7 +24,12 @@ func main() {
 	log.SetFormatter(&CustomFormatter{})
 	log.Printf("Start BossBot with configuration : %+v\n", *conf)
 	Utilities.ExecuteCode(conf.PIDFilePath, func() {
-		BossBot.StartBroadcaster(*conf)
+
+		go func() {
+			BossBot.StartBroadcaster(*conf)
+		}()
+		BossBot.RespServer(*conf)
+		select {}
 	})
 
 }
