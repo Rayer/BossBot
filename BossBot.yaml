@@ -3,4 +3,5 @@ SqlHost: node.rayer.idv.tw
 SqlPort: 3306
 SqlAcc: acc
 SqlPass: 12qw34er
-PIDFilePath: /var/run/
+PIDFilePath: /tmp
+SlackBotToken: xoxb-261545166194-502364200368-TTjK2w7iERImRPIybnhCQYla

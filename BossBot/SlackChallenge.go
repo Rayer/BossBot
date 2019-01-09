@@ -7,13 +7,12 @@ import (
 )
 
 type myData struct {
-	Type 		string `json:"type"`
-	Token  		string `json:"token"`
-	Challenge 	string `json:"challenge"`
+	Type      string `json:"type"`
+	Token     string `json:"token"`
+	Challenge string `json:"challenge"`
 }
 
-
-func Server() {
+func ChallengeServer() {
 	http.HandleFunc("/bossbot", func(rw http.ResponseWriter, r *http.Request) {
 		decoder := json.NewDecoder(r.Body)
 
@@ -31,4 +30,3 @@ func Server() {
 
 	http.ListenAndServe(":8332", nil)
 }
-
