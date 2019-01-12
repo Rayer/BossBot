@@ -24,7 +24,9 @@ func TestProcessing(t *testing.T) {
 
 	log.Debugf("Start testing TestProcessing")
 
-	err := Processing(*conf)
+	msgBroadcaster := MessageBroadcaster{*conf}
+
+	err := msgBroadcaster.Processing()
 	if err != nil {
 		t.Fatal(err)
 	}

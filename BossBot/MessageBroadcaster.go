@@ -11,16 +11,13 @@ import (
 	"time"
 )
 
-var config Configuration
+type MessageBroadcaster struct {
+	config Configuration
+}
 
-func Processing(conf Configuration) error {
+func (mb *MessageBroadcaster) Processing() error {
 
-	config = conf
-
-	db, err := Utilities.CreateDBObject(config.SqlHost, config.SqlAcc, config.SqlPass)
-	if err != nil {
-		return errors.Wrap(err, "Error creating db object")
-	}
+	db := mb.config.Context.DBObject
 
 	log.Println("Start process handling routine....")
 	conn := db.GetConnection()
@@ -46,13 +43,6 @@ and (bs.end_date is null or bs.end_date > CONVERT_TZ(NOW(), '+00:00', '+08:00'))
 	}
 	log.Debugf("Evaluating %d items...", len(result))
 	for _, entry := range result {
-		//output := "Evaluating : "
-		//for key, value := range entry {
-		//	//fmt.Printf("%s : %s\n", key, value)
-		//	output += fmt.Sprintf("%s : %s ", key, value)
-		//}
-		//log.Println(output)
-
 		_, err = tryBroadcast(entry, conn)
 		if err != nil {
 			return errors.Wrap(err, "Broadcast fail!")
@@ -161,7 +151,8 @@ func StartBroadcaster(conf Configuration) {
 		ticker := time.NewTicker(time.Minute)
 		select {
 		case <-ticker.C:
-			err := Processing(conf)
+			broadcaster := MessageBroadcaster{conf}
+			err := broadcaster.Processing()
 			if err != nil {
 				log.Fatal(err)
 			}

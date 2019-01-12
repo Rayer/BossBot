@@ -30,6 +30,36 @@ func RespServer(conf Configuration) error {
 				log.Errorln("Error handling income interactive message : ", item)
 				log.Errorln("Error is : ", err)
 			}
+
+			//TODO : Make it const
+			if msgAct.CallbackId == "MsgSchOperation" {
+				//Handler of MsgSchOperation
+				//Get action and schedule ID. Usually, there should be only 1 action
+				schAction := MsgScheduleIdActions{}
+				err := json.Unmarshal([]byte(msgAct.Actions[0].Value), &schAction)
+				if err != nil {
+					//....should not happen?
+					log.Warnln(err)
+				}
+
+				w.Header().Set("Content-Type", "application/json")
+				switch schAction.Action {
+				case "invoke":
+
+					//http.Post(msgAct.ResponseUrl, "application/json", strings.NewReader("{\"aaa\":\"invoke22222\"}"))
+					_, err = w.Write([]byte("{\"aaa\":\"invoke\"}"))
+
+					break
+				case "enable":
+					_, err = w.Write([]byte("{\"aaa\":\"enable\"}"))
+					break
+				case "disable":
+					_, err = w.Write([]byte("{\"aaa\":\"disable\"}"))
+					break
+				}
+
+			}
+			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -50,10 +80,6 @@ func RespServer(conf Configuration) error {
 
 		switch s.Command {
 		case "/bb_broadcast_list":
-
-			//params := &slack.Msg{Text: s.Text}
-
-			//b, err := json.Marshal(params)
 
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
@@ -100,7 +126,7 @@ func RespServer(conf Configuration) error {
 				valueJson, err := json.Marshal(&value)
 
 				if err != nil {
-					log.Warnln("Error marshelling json : %+v", value)
+					log.Warnln("Error marshalling json : %+v", value)
 					return
 				}
 
@@ -116,7 +142,7 @@ func RespServer(conf Configuration) error {
 				valueJson, err = json.Marshal(&value)
 
 				if err != nil {
-					log.Warnln("Error marshelling json : %+v", value)
+					log.Warnln("Error marshalling json : %+v", value)
 					return
 				}
 				actions = append(actions, slack.AttachmentAction{
@@ -131,7 +157,7 @@ func RespServer(conf Configuration) error {
 					Text:       fmt.Sprintf("%s", broadcast.StringForSlackItem()),
 					Actions:    actions,
 					Color:      color,
-					CallbackID: "MsgSchModify",
+					CallbackID: "MsgSchOperation",
 				}
 
 				if params.Attachments == nil {

@@ -1,6 +1,7 @@
 package BossBot
 
 import (
+	"Utilities"
 	"fmt"
 	"github.com/nlopes/slack"
 	"github.com/spf13/viper"
@@ -14,7 +15,12 @@ type Configuration struct {
 	SqlPass       string
 	PIDFilePath   string
 	SlackBotToken string
-	SlackClient   *slack.Client
+	Context       ServiceContext
+}
+
+type ServiceContext struct {
+	SlackClient *slack.Client
+	DBObject    *Utilities.DBObject
 }
 
 func CreateConfigurationFromFile() (*Configuration, error) {
@@ -22,7 +28,7 @@ func CreateConfigurationFromFile() (*Configuration, error) {
 	viper.AddConfigPath(".")
 	err := viper.ReadInConfig()
 	if err != nil {
-		panic(fmt.Errorf("Can't read configuration file! "))
+		panic(fmt.Errorf("Can't read configuration file (%s) ", err))
 	}
 
 	viper.SetDefault("SqlPort", 3306)
@@ -38,7 +44,11 @@ func CreateConfigurationFromFile() (*Configuration, error) {
 	conf.SqlPass = viper.GetString("SqlPass")
 	conf.SlackBotToken = viper.GetString("SlackBotToken")
 
-	conf.SlackClient = slack.New(conf.SlackBotToken)
+	conf.Context.SlackClient = slack.New(conf.SlackBotToken)
+	conf.Context.DBObject, err = Utilities.CreateDBObject(conf.SqlHost, conf.SqlAcc, conf.SqlPass)
+	if err != nil {
+		panic(fmt.Errorf("error creating DB object! Please check sql credential and address! (%s)", err))
+	}
 
 	return conf, nil
 }
