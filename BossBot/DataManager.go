@@ -28,7 +28,7 @@ func GetDataManager(conf *Configuration) (*DataManager, error) {
 }
 
 func (dm *DataManager) GetBroadcastList() ([]BroadcastItem, error) {
-	rows, err := dm.db.GetConnection().Query(
+	rows, err := dm.db.GetDB().Query(
 		`select bs.id, bs.start_date as start, bs.end_date as end, bm.message as message, bs.message_id as message_id, bs.recursive_day_in_month as day_in_month, bs.recursive_day_in_week as day_in_week, bs.broadcast_time, bbc.name as channel_name, bs.active as active
 				from bb_broadcast_schedule as bs
 				inner join bb_broadcast_msg as bm on bs.message_id = bm.id

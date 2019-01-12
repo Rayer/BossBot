@@ -42,7 +42,7 @@ func CreateDBObject(host string, user string, passwd string) (*DBObject, error) 
 	return &ret, nil
 }
 
-func (db *DBObject) GetConnection() *sql.DB {
+func (db *DBObject) GetDB() *sql.DB {
 	return db.conn
 }
 

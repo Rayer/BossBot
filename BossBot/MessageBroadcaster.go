@@ -20,13 +20,7 @@ func (mb *MessageBroadcaster) Processing() error {
 	db := mb.config.Context.DBObject
 
 	log.Println("Start process handling routine....")
-	conn := db.GetConnection()
-	defer func() {
-		err := conn.Close()
-		if err != nil {
-			log.Fatalf("Error closing connection!")
-		}
-	}()
+	conn := db.GetDB()
 
 	//This query includes : 1. active = 1 2. At least start or end date is assigned 3. date < end 4. date > start
 	queryString := `select bs.id, bs.start_date as start, bs.end_date as end, bm.message as message, bs.message_id as message_id, CONVERT_TZ(bs.last_run, '+00:00', '+08:00') as last_run, bs.recursive_day_in_month as day_in_month, bs.recursive_day_in_week as day_in_week, bs.broadcast_time, bbc.webhook
