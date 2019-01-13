@@ -139,6 +139,66 @@ func tryBroadcast(broadcastItem Utilities.RowResult, conn *sql.DB) (int, error) 
 	return 1, nil
 }
 
+func (mb *MessageBroadcaster) InvokeBroadcast(id int) (int, error) {
+	db := mb.config.Context.DBObject.GetDB()
+
+	res, err := db.Query(`select bs.id, bm.message as message, bbc.webhook, bm.id as message_id
+	from bb_broadcast_schedule as bs
+	inner join bb_broadcast_msg as bm on bs.message_id = bm.id
+	inner join bb_broadcast_channel as bbc on bs.channel_id = bbc.id
+	where bs.id = ?`, id)
+
+	if err != nil {
+		return 0, errors.Wrap(err, "Error invoke broadcast!")
+	}
+
+	type ib_item struct {
+		Id        int    `bb_data:"id"`
+		Message   string `bb_data:"message"`
+		Webhook   string `bb_data:"webhook"`
+		MessageId int    `bb_data:"message_id"`
+	}
+
+	ib := ib_item{}
+	res.Next()
+	err = Utilities.RowsToStruct(res, &ib)
+	if err != nil {
+		return 0, errors.Wrap(err, "Error parsing return data")
+	}
+
+	log.Debugf("Get ib item : %+v\n", ib)
+
+	webhookUrl := ib.Webhook
+	message := ib.Message
+
+	outgoing := slack.WebhookMessage{
+		Text: message,
+	}
+	err = slack.PostWebhook(webhookUrl, &outgoing)
+
+	if err != nil {
+		return 0, errors.Wrap(err, "Error posting to channel!")
+	}
+
+	last_run_sql := fmt.Sprintf("update bb_broadcast_schedule set last_run = CONVERT_TZ(Now(), '+00:00', '+08:00') where id = %d;", id)
+	_, err = db.Exec(last_run_sql)
+	if err != nil {
+		return 1, errors.Wrap(err, "Message is sent but fail to update last_run in bb_broadcast_schedule!")
+	}
+
+	last_run_sql = fmt.Sprintf("update bb_broadcast_msg set last_broadcast = CONVERT_TZ(Now(), '+00:00', '+08:00'), broadcast_count = if(broadcast_count is null, 1, broadcast_count + 1) where id = %d;", ib.MessageId)
+	_, err = db.Exec(last_run_sql)
+	if err != nil {
+		return 1, errors.Wrap(err, "Message is sent but fail to update last_run in bb_broadcast_msg!")
+	}
+
+	return 1, nil
+}
+
+func (mb *MessageBroadcaster) SetActive(msgId int, active bool) (int, error) {
+	return 1, nil
+}
+
 func StartBroadcaster(conf Configuration) {
 	log.Println("Initialization for Broadcaster...")
 	for {

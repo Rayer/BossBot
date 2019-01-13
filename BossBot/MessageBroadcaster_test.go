@@ -51,3 +51,12 @@ func TestParsingDateTime(t *testing.T) {
 	}
 	_, err = time.Parse(layout, source2)
 }
+
+func TestMessageBroadcaster_InvokeBroadcast(t *testing.T) {
+	conf, _ := CreateConfigurationFromFile()
+	bc := MessageBroadcaster{*conf}
+	_, err := bc.InvokeBroadcast(2)
+	if err != nil {
+		t.Fatalf("err : %s", err)
+	}
+}

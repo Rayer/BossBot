@@ -10,8 +10,8 @@ import (
 )
 
 type MsgScheduleIdActions struct {
-	Action string `json:"action"`
-	MsgId  int    `json:"msg_id"`
+	Action         string `json:"action"`
+	ScheduleItemId int    `json:"item_id"`
 }
 
 func RespServer(conf Configuration) error {
@@ -42,10 +42,16 @@ func RespServer(conf Configuration) error {
 					log.Warnln(err)
 				}
 
+				mb := MessageBroadcaster{conf}
+
 				w.Header().Set("Content-Type", "application/json")
+
 				switch schAction.Action {
 				case "invoke":
-
+					_, err = mb.InvokeBroadcast(schAction.ScheduleItemId)
+					if err != nil {
+						log.Warnf("Fail at : %+v", schAction)
+					}
 					//http.Post(msgAct.ResponseUrl, "application/json", strings.NewReader("{\"aaa\":\"invoke22222\"}"))
 					_, err = w.Write([]byte("{\"aaa\":\"invoke\"}"))
 
@@ -110,7 +116,7 @@ func RespServer(conf Configuration) error {
 				var actionBtnName string
 				var color string
 				value := MsgScheduleIdActions{
-					MsgId: broadcast.MessageId,
+					ScheduleItemId: broadcast.Id,
 				}
 
 				if broadcast.Active == 1 {
@@ -126,7 +132,7 @@ func RespServer(conf Configuration) error {
 				valueJson, err := json.Marshal(&value)
 
 				if err != nil {
-					log.Warnln("Error marshalling json : %+v", value)
+					log.Warnf("Error marshalling json : %+v\n", value)
 					return
 				}
 
@@ -142,7 +148,7 @@ func RespServer(conf Configuration) error {
 				valueJson, err = json.Marshal(&value)
 
 				if err != nil {
-					log.Warnln("Error marshalling json : %+v", value)
+					log.Warnf("Error marshalling json : %+v\n", value)
 					return
 				}
 				actions = append(actions, slack.AttachmentAction{
@@ -170,7 +176,7 @@ func RespServer(conf Configuration) error {
 
 			ret, err := json.Marshal(params)
 			w.Header().Set("Content-Type", "application/json")
-			w.Write(ret)
+			_, _ = w.Write(ret)
 
 		default:
 			w.WriteHeader(http.StatusInternalServerError)
@@ -179,6 +185,6 @@ func RespServer(conf Configuration) error {
 	})
 
 	log.Println("Starting server....")
-	http.ListenAndServe(":5601", nil)
+	_ = http.ListenAndServe(":5601", nil)
 	return nil
 }
