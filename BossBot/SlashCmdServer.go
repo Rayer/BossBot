@@ -2,7 +2,6 @@ package BossBot
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/nlopes/slack"
 	"github.com/nlopes/slack/slackevents"
 	log "github.com/sirupsen/logrus"
@@ -24,7 +23,8 @@ func RespServer(conf Configuration) error {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-
+		w.Header().Set("Content-Type", "application/json")
+		var wm slack.WebhookMessage
 		for _, item := range r.PostForm["payload"] {
 			msgAct := slackevents.MessageAction{}
 			err := json.Unmarshal([]byte(item), &msgAct)
@@ -37,63 +37,19 @@ func RespServer(conf Configuration) error {
 			if msgAct.CallbackId == "MsgSchOperation" {
 				//Handler of MsgSchOperation
 				//Get action and schedule ID. Usually, there should be only 1 action
-				schAction := MsgScheduleIdActions{}
-				err := json.Unmarshal([]byte(msgAct.Actions[0].Value), &schAction)
+				controller := MsgSchedulerController{conf, MessageBroadcaster{conf}}
+				wm, err = controller.HandleItem(w, msgAct)
 				if err != nil {
-					//....should not happen?
-					log.Warnln(err)
+					log.Errorf("Error handling MsgSchOperation, error : %s", err)
+					wm.Text = "Error handling MsgSchOperation!"
 				}
-
-				mb := MessageBroadcaster{conf}
-				whm := slack.WebhookMessage{}
-				w.Header().Set("Content-Type", "application/json")
-
-				switch schAction.Action {
-				case "invoke":
-					_, err = mb.InvokeBroadcast(schAction.ScheduleItemId)
-					if err != nil {
-						log.Warnf("Fail at : %+v", schAction)
-						whm.Text = fmt.Sprintf("Schedule ID : %d failed to be invoked", schAction.ScheduleItemId)
-
-					} else {
-						whm.Text = fmt.Sprintf("Schedule ID : %d is successfully invoked!", schAction.ScheduleItemId)
-					}
-					break
-				case "enable":
-					err = mb.SetActive(schAction.ScheduleItemId, true)
-					if err != nil {
-						log.Warnf("Fail at : %+v", schAction)
-						whm.Text = fmt.Sprintf("Schedule ID : %d failed to be enabled", schAction.ScheduleItemId)
-
-					} else {
-						whm.Text = fmt.Sprintf("Schedule ID : %d is successfully enabled!", schAction.ScheduleItemId)
-					}
-					break
-				case "disable":
-					err = mb.SetActive(schAction.ScheduleItemId, false)
-					whm.Text = fmt.Sprintf("Schedule ID : %d successfully disabled!", schAction.ScheduleItemId)
-					if err != nil {
-						log.Warnf("Fail at : %+v", schAction)
-						whm.Text = fmt.Sprintf("Schedule ID : %d failed to be disabled", schAction.ScheduleItemId)
-
-					} else {
-						whm.Text = fmt.Sprintf("Schedule ID : %d is successfully disabled!", schAction.ScheduleItemId)
-					}
-					break
-				}
-				out, err := json.Marshal(whm)
-				_, err = w.Write(out)
-				if err != nil {
-					log.Warnf("Fail to write in slash command response! %s\n", err)
-				}
-
-				return
 			}
 
+			ret, _ := json.Marshal(wm)
+			w.Write(ret)
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
 		_, err = w.Write([]byte("{\"aaa\":\"ccc\"}"))
 		if err != nil {
 			log.Errorln("Fail to send message : ", err)
