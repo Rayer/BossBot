@@ -7,6 +7,8 @@ import (
 	"github.com/nlopes/slack/slackevents"
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	"strconv"
+	"time"
 )
 
 type MsgScheduleIdActions struct {
@@ -80,7 +82,11 @@ func RespServer(conf Configuration) error {
 					break
 				}
 				out, err := json.Marshal(whm)
-				w.Write(out)
+				_, err = w.Write(out)
+				if err != nil {
+					log.Warnf("Fail to write in slash command response! %s\n", err)
+				}
+
 				return
 			}
 
@@ -105,6 +111,8 @@ func RespServer(conf Configuration) error {
 
 		switch s.Command {
 		case "/bb_broadcast_list":
+
+			log.Debugf("Incoming cmd bb_broadcast_list")
 
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
@@ -178,11 +186,93 @@ func RespServer(conf Configuration) error {
 					Value: string(valueJson),
 				})
 
+				var fields []slack.AttachmentField
+
+				//Makeup id / message_id / Message field
+				fields = append(fields, slack.AttachmentField{
+					Title: "Scheduler ID",
+					Value: strconv.Itoa(broadcast.Id),
+					Short: true,
+				})
+
+				fields = append(fields, slack.AttachmentField{
+					Title: "Message ID",
+					Value: strconv.Itoa(broadcast.MessageId),
+					Short: true,
+				})
+
+				fields = append(fields, slack.AttachmentField{
+					Title: "Message",
+					Value: broadcast.Message,
+					Short: false,
+				})
+
+				//Start date and End date
+
+				fields = append(fields, slack.AttachmentField{
+					Title: "Start From",
+					Value: func() string {
+						if broadcast.StartDate.Valid {
+							return broadcast.StartDate.Time.Format(time.RFC822)
+						}
+						return "Not set"
+					}(),
+					Short: true,
+				})
+
+				fields = append(fields, slack.AttachmentField{
+					Title: "Ends at",
+					Value: func() string {
+						if broadcast.EndDate.Valid {
+							return broadcast.StartDate.Time.Format(time.RFC822)
+						}
+						return "Not set"
+					}(),
+					Short: true,
+				})
+
+				//Recursive date time
+
+				fields = append(fields, slack.AttachmentField{
+					Title: "Run at nth day of month",
+					Value: func() string {
+						if broadcast.Day.Valid {
+							return "Every " + strconv.Itoa(int(broadcast.Day.Int64)) + " of the month"
+						}
+						return "Not set"
+					}(),
+					Short: true,
+				})
+
+				fields = append(fields, slack.AttachmentField{
+					Title: "Run at day in week",
+					Value: func() string {
+						if broadcast.WeekDay.Valid {
+							return "Every " + time.Weekday(broadcast.WeekDay.Int64).String()
+						}
+						return "Not set"
+					}(),
+					Short: true,
+				})
+
+				fields = append(fields, slack.AttachmentField{
+					Title: "Broadcast Time",
+					Value: broadcast.BroadcastTime,
+					Short: true,
+				})
+
+				fields = append(fields, slack.AttachmentField{
+					Title: "Channel",
+					Value: broadcast.ChannelName,
+					Short: true,
+				})
+
 				attachment := slack.Attachment{
-					Text:       fmt.Sprintf("%s", broadcast.StringForSlackItem()),
+					Text:       "Message detail",
 					Actions:    actions,
 					Color:      color,
 					CallbackID: "MsgSchOperation",
+					Fields:     fields,
 				}
 
 				if params.Attachments == nil {
