@@ -180,14 +180,14 @@ func (mb *MessageBroadcaster) InvokeBroadcast(id int) (int, error) {
 		return 0, errors.Wrap(err, "Error posting to channel!")
 	}
 
-	last_run_sql := fmt.Sprintf("update bb_broadcast_schedule set last_run = CONVERT_TZ(Now(), '+00:00', '+08:00') where id = %d;", id)
-	_, err = db.Exec(last_run_sql)
+	lastRunSql := fmt.Sprintf("update bb_broadcast_schedule set last_run = CONVERT_TZ(Now(), '+00:00', '+08:00') where id = %d;", id)
+	_, err = db.Exec(lastRunSql)
 	if err != nil {
 		return 1, errors.Wrap(err, "Message is sent but fail to update last_run in bb_broadcast_schedule!")
 	}
 
-	last_run_sql = fmt.Sprintf("update bb_broadcast_msg set last_broadcast = CONVERT_TZ(Now(), '+00:00', '+08:00'), broadcast_count = if(broadcast_count is null, 1, broadcast_count + 1) where id = %d;", ib.MessageId)
-	_, err = db.Exec(last_run_sql)
+	lastRunSql = fmt.Sprintf("update bb_broadcast_msg set last_broadcast = CONVERT_TZ(Now(), '+00:00', '+08:00'), broadcast_count = if(broadcast_count is null, 1, broadcast_count + 1) where id = %d;", ib.MessageId)
+	_, err = db.Exec(lastRunSql)
 	if err != nil {
 		return 1, errors.Wrap(err, "Message is sent but fail to update last_run in bb_broadcast_msg!")
 	}
@@ -195,8 +195,21 @@ func (mb *MessageBroadcaster) InvokeBroadcast(id int) (int, error) {
 	return 1, nil
 }
 
-func (mb *MessageBroadcaster) SetActive(msgId int, active bool) (int, error) {
-	return 1, nil
+func (mb *MessageBroadcaster) SetActive(schId int, active bool) error {
+	db := mb.config.Context.DBObject.GetDB()
+
+	var isActive int
+	if active {
+		isActive = 1
+	} else {
+		isActive = 0
+	}
+
+	_, err := db.Exec("update bb_broadcast_schedule set active = ? where id = ?", isActive, schId)
+	if err != nil {
+		return errors.Wrap(err, "Error updating schedule table!")
+	}
+	return nil
 }
 
 func StartBroadcaster(conf Configuration) {

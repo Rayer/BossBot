@@ -56,6 +56,7 @@ func (bc *BroadcastItem) String() string {
 func (bc *BroadcastItem) StringForSlackItem() string {
 	var ret string
 
+	ret += fmt.Sprintf("Scheduler ID : %d\n", bc.Id)
 	ret += fmt.Sprintf("Message : %s\n", bc.Message)
 	ret += fmt.Sprintf("Message ID : %d\n", bc.MessageId)
 

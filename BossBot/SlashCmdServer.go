@@ -43,7 +43,7 @@ func RespServer(conf Configuration) error {
 				}
 
 				mb := MessageBroadcaster{conf}
-
+				whm := slack.WebhookMessage{}
 				w.Header().Set("Content-Type", "application/json")
 
 				switch schAction.Action {
@@ -51,20 +51,39 @@ func RespServer(conf Configuration) error {
 					_, err = mb.InvokeBroadcast(schAction.ScheduleItemId)
 					if err != nil {
 						log.Warnf("Fail at : %+v", schAction)
-					}
-					//http.Post(msgAct.ResponseUrl, "application/json", strings.NewReader("{\"aaa\":\"invoke22222\"}"))
-					_, err = w.Write([]byte("{\"aaa\":\"invoke\"}"))
+						whm.Text = fmt.Sprintf("Schedule ID : %d failed to be invoked", schAction.ScheduleItemId)
 
+					} else {
+						whm.Text = fmt.Sprintf("Schedule ID : %d is successfully invoked!", schAction.ScheduleItemId)
+					}
 					break
 				case "enable":
-					_, err = w.Write([]byte("{\"aaa\":\"enable\"}"))
+					err = mb.SetActive(schAction.ScheduleItemId, true)
+					if err != nil {
+						log.Warnf("Fail at : %+v", schAction)
+						whm.Text = fmt.Sprintf("Schedule ID : %d failed to be enabled", schAction.ScheduleItemId)
+
+					} else {
+						whm.Text = fmt.Sprintf("Schedule ID : %d is successfully enabled!", schAction.ScheduleItemId)
+					}
 					break
 				case "disable":
-					_, err = w.Write([]byte("{\"aaa\":\"disable\"}"))
+					err = mb.SetActive(schAction.ScheduleItemId, false)
+					whm.Text = fmt.Sprintf("Schedule ID : %d successfully disabled!", schAction.ScheduleItemId)
+					if err != nil {
+						log.Warnf("Fail at : %+v", schAction)
+						whm.Text = fmt.Sprintf("Schedule ID : %d failed to be disabled", schAction.ScheduleItemId)
+
+					} else {
+						whm.Text = fmt.Sprintf("Schedule ID : %d is successfully disabled!", schAction.ScheduleItemId)
+					}
 					break
 				}
-
+				out, err := json.Marshal(whm)
+				w.Write(out)
+				return
 			}
+
 			return
 		}
 
