@@ -33,7 +33,7 @@ func ExecuteCode(fullpath string, mainLoop ExecutionBlock) {
 		if proc != nil {
 			err = proc.Kill()
 			if err != nil {
-				log.Errorln("PID file exist but fail to kill process, is there a permission issue?")
+				log.Warnln("PID file exist but fail to kill process, is there a permission issue?")
 			}
 		} else {
 			log.Warnln("PID file exists but relative PID not exists, going on....")

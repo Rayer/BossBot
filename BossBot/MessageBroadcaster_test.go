@@ -24,7 +24,9 @@ func TestProcessing(t *testing.T) {
 
 	log.Debugf("Start testing TestProcessing")
 
-	err := Processing(*conf)
+	msgBroadcaster := MessageBroadcaster{*conf}
+
+	err := msgBroadcaster.Processing()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -48,4 +50,13 @@ func TestParsingDateTime(t *testing.T) {
 		t.Fatalf("Error parsing : %s", err)
 	}
 	_, err = time.Parse(layout, source2)
+}
+
+func TestMessageBroadcaster_InvokeBroadcast(t *testing.T) {
+	conf, _ := CreateConfigurationFromFile()
+	bc := MessageBroadcaster{*conf}
+	_, err := bc.InvokeBroadcast(2)
+	if err != nil {
+		t.Fatalf("err : %s", err)
+	}
 }

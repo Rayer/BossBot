@@ -10,8 +10,8 @@ import (
 )
 
 type MsgScheduleIdActions struct {
-	Action string `json:"action"`
-	MsgId  int    `json:"msg_id"`
+	Action         string `json:"action"`
+	ScheduleItemId int    `json:"item_id"`
 }
 
 func RespServer(conf Configuration) error {
@@ -30,6 +30,61 @@ func RespServer(conf Configuration) error {
 				log.Errorln("Error handling income interactive message : ", item)
 				log.Errorln("Error is : ", err)
 			}
+
+			//TODO : Make it const
+			if msgAct.CallbackId == "MsgSchOperation" {
+				//Handler of MsgSchOperation
+				//Get action and schedule ID. Usually, there should be only 1 action
+				schAction := MsgScheduleIdActions{}
+				err := json.Unmarshal([]byte(msgAct.Actions[0].Value), &schAction)
+				if err != nil {
+					//....should not happen?
+					log.Warnln(err)
+				}
+
+				mb := MessageBroadcaster{conf}
+				whm := slack.WebhookMessage{}
+				w.Header().Set("Content-Type", "application/json")
+
+				switch schAction.Action {
+				case "invoke":
+					_, err = mb.InvokeBroadcast(schAction.ScheduleItemId)
+					if err != nil {
+						log.Warnf("Fail at : %+v", schAction)
+						whm.Text = fmt.Sprintf("Schedule ID : %d failed to be invoked", schAction.ScheduleItemId)
+
+					} else {
+						whm.Text = fmt.Sprintf("Schedule ID : %d is successfully invoked!", schAction.ScheduleItemId)
+					}
+					break
+				case "enable":
+					err = mb.SetActive(schAction.ScheduleItemId, true)
+					if err != nil {
+						log.Warnf("Fail at : %+v", schAction)
+						whm.Text = fmt.Sprintf("Schedule ID : %d failed to be enabled", schAction.ScheduleItemId)
+
+					} else {
+						whm.Text = fmt.Sprintf("Schedule ID : %d is successfully enabled!", schAction.ScheduleItemId)
+					}
+					break
+				case "disable":
+					err = mb.SetActive(schAction.ScheduleItemId, false)
+					whm.Text = fmt.Sprintf("Schedule ID : %d successfully disabled!", schAction.ScheduleItemId)
+					if err != nil {
+						log.Warnf("Fail at : %+v", schAction)
+						whm.Text = fmt.Sprintf("Schedule ID : %d failed to be disabled", schAction.ScheduleItemId)
+
+					} else {
+						whm.Text = fmt.Sprintf("Schedule ID : %d is successfully disabled!", schAction.ScheduleItemId)
+					}
+					break
+				}
+				out, err := json.Marshal(whm)
+				w.Write(out)
+				return
+			}
+
+			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -50,10 +105,6 @@ func RespServer(conf Configuration) error {
 
 		switch s.Command {
 		case "/bb_broadcast_list":
-
-			//params := &slack.Msg{Text: s.Text}
-
-			//b, err := json.Marshal(params)
 
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
@@ -84,7 +135,7 @@ func RespServer(conf Configuration) error {
 				var actionBtnName string
 				var color string
 				value := MsgScheduleIdActions{
-					MsgId: broadcast.MessageId,
+					ScheduleItemId: broadcast.Id,
 				}
 
 				if broadcast.Active == 1 {
@@ -100,7 +151,7 @@ func RespServer(conf Configuration) error {
 				valueJson, err := json.Marshal(&value)
 
 				if err != nil {
-					log.Warnln("Error marshelling json : %+v", value)
+					log.Warnf("Error marshalling json : %+v\n", value)
 					return
 				}
 
@@ -116,7 +167,7 @@ func RespServer(conf Configuration) error {
 				valueJson, err = json.Marshal(&value)
 
 				if err != nil {
-					log.Warnln("Error marshelling json : %+v", value)
+					log.Warnf("Error marshalling json : %+v\n", value)
 					return
 				}
 				actions = append(actions, slack.AttachmentAction{
@@ -131,7 +182,7 @@ func RespServer(conf Configuration) error {
 					Text:       fmt.Sprintf("%s", broadcast.StringForSlackItem()),
 					Actions:    actions,
 					Color:      color,
-					CallbackID: "MsgSchModify",
+					CallbackID: "MsgSchOperation",
 				}
 
 				if params.Attachments == nil {
@@ -144,7 +195,7 @@ func RespServer(conf Configuration) error {
 
 			ret, err := json.Marshal(params)
 			w.Header().Set("Content-Type", "application/json")
-			w.Write(ret)
+			_, _ = w.Write(ret)
 
 		default:
 			w.WriteHeader(http.StatusInternalServerError)
@@ -153,6 +204,6 @@ func RespServer(conf Configuration) error {
 	})
 
 	log.Println("Starting server....")
-	http.ListenAndServe(":5601", nil)
+	_ = http.ListenAndServe(":5601", nil)
 	return nil
 }
