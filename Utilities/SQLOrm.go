@@ -6,7 +6,7 @@ import (
 	"reflect"
 )
 
-func RowsToStruct(rows *sql.Rows, to interface{}) error {
+func RowsToStruct(tagHead string, rows *sql.Rows, to interface{}) error {
 	v := reflect.ValueOf(to)
 	if v.Elem().Type().Kind() != reflect.Struct {
 		return errors.New("Expect a struct")
@@ -19,9 +19,10 @@ func RowsToStruct(rows *sql.Rows, to interface{}) error {
 
 	for i := 0; i < v.Elem().NumField(); i++ {
 		oneValue := v.Elem().Field(i)
-		columnName := v.Elem().Type().Field(i).Tag.Get("bb_data")
+		columnName := v.Elem().Type().Field(i).Tag.Get(tagHead)
 		if columnName == "" {
-			columnName = oneValue.Type().Name()
+			//columnName = oneValue.Type().Name()
+			continue
 		}
 		put := oneValue.Addr().Interface()
 		addrByColumnName[columnName] = put

@@ -23,7 +23,10 @@ func (mb *MessageBroadcaster) Processing() error {
 	conn := db.GetDB()
 
 	//This query includes : 1. active = 1 2. At least start or end date is assigned 3. date < end 4. date > start
-	queryString := `select bs.id, bs.start_date as start, bs.end_date as end, bm.message as message, bs.message_id as message_id, CONVERT_TZ(bs.last_run, '+00:00', '+08:00') as last_run, bs.recursive_day_in_month as day_in_month, bs.recursive_day_in_week as day_in_week, bs.broadcast_time, bbc.webhook
+	queryString := `select bs.id, bs.start_date as start, bs.end_date as end, bm.message as message, 
+bs.message_id as message_id, CONVERT_TZ(bs.last_run, '+00:00', '+08:00') as last_run, 
+bs.recursive_day_in_month as day_in_month, bs.recursive_day_in_week as day_in_week, 
+bs.broadcast_time, bbc.webhook, bm.format
 from bb_broadcast_schedule as bs
 inner join bb_broadcast_msg as bm on bs.message_id = bm.id
 inner join bb_broadcast_channel as bbc on bs.channel_id = bbc.id
@@ -161,7 +164,7 @@ func (mb *MessageBroadcaster) InvokeBroadcast(id int) (int, error) {
 
 	ib := ib_item{}
 	res.Next()
-	err = Utilities.RowsToStruct(res, &ib)
+	err = Utilities.RowsToStruct("bb_data", res, &ib)
 	if err != nil {
 		return 0, errors.Wrap(err, "Error parsing return data")
 	}
