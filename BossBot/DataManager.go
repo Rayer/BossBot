@@ -53,7 +53,7 @@ func (dm *DataManager) GetBroadcastList() ([]BroadcastItem, error) {
 	for rows.Next() {
 		//First, create struct, and fill pointer list according to column name list
 		bi := BroadcastItem{}
-		err = Utilities.RowsToStruct(rows, &bi)
+		err = Utilities.RowsToStruct("bb_data", rows, &bi)
 		if err != nil {
 			log.Errorln(err)
 		}
