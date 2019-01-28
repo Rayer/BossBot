@@ -4,6 +4,8 @@ require github.com/pkg/errors v0.8.0
 
 replace Utilities v0.0.0 => ../Utilities
 
+replace ChatBot v0.0.0 => ../ChatBot
+
 require (
 	Utilities v0.0.0
 	github.com/go-sql-driver/mysql v1.4.1
