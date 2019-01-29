@@ -12,5 +12,14 @@ func NewContextManager() *ContextManager{
 
 func (cm *ContextManager) GetUserContext(user string) *UserContext {
 	uc := cm.contextList[user]
+	if uc == nil {
+		rs := new RootScenario{}
+		uc = &UserContext{
+			user: user,
+			scenarioChain:[]*Scenario{rs.(*Scenario)},
+		}
+	}
+
+
 
 }
