@@ -2,7 +2,7 @@ package ChatBot
 
 type ScenarioState interface {
 	InitWithParent(parent Scenario) error
-	RenderMessage() string
-	HandleMessage(input string) string
+	RenderMessage() (string, error)
+	HandleMessage(input string) (string, error)
 	GetParentScenario() Scenario
 }

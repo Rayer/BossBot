@@ -1,12 +1,9 @@
 package ChatBot
 
-import log "github.com/sirupsen/logrus"
-
 type Scenario interface {
 	ScenarioCallback
-	RenderMessage() string
-	HandleMessage(input string) string
-	ProcessMessage(msg string) error
+	RenderMessage() (string, error)
+	HandleMessage(input string) (string, error)
 	GetUserContext() *UserContext
 	Name() string
 
@@ -18,6 +15,7 @@ type Scenario interface {
 type DefaultScenarioImpl struct {
 	stateList    map[string]ScenarioState
 	currentState ScenarioState
+	userContext  *UserContext
 }
 
 func (dsi *DefaultScenarioImpl) getState(name string) ScenarioState {
@@ -37,28 +35,14 @@ func (dsi *DefaultScenarioImpl) registerState(name string, state ScenarioState) 
 	}
 }
 
-func (dsi *DefaultScenarioImpl) DisposeScenario() error {
-	log.Debugln("Disposing Scenario")
-	return nil
-}
-
-func (dsi *DefaultScenarioImpl) RenderMessage() string {
+func (dsi *DefaultScenarioImpl) RenderMessage() (string, error) {
 	return dsi.currentState.RenderMessage()
 }
 
-func (dsi *DefaultScenarioImpl) HandleMessage(input string) string {
+func (dsi *DefaultScenarioImpl) HandleMessage(input string) (string, error) {
 	return dsi.currentState.HandleMessage(input)
 }
 
-//With keyword system we can have a default process message. However, not now.
-func (dsi *DefaultScenarioImpl) ProcessMessage(msg string) error {
-	panic("implement me")
-}
-
 func (dsi *DefaultScenarioImpl) GetUserContext() *UserContext {
-	panic("implement me")
-}
-
-func (dsi *DefaultScenarioImpl) Name() string {
-	panic("implement me")
+	return dsi.userContext
 }

@@ -25,36 +25,42 @@ func NewUserContext(user string) *UserContext {
 	}
 	//Put root scenario into chain
 	rs := RootScenario{}
-	es := EntryState{}
-	ss := SecondState{}
 	rs.stateList = make(map[string]ScenarioState)
-	es.InitWithParent(&rs)
-	ss.InitWithParent(&rs)
-	ret.scenarioChain = []Scenario{&rs}
-	rs.EnterScenario(nil)
+	ret.InvokeNextScenario(&rs, Stack)
 
 	return &ret
 }
 
 func (uc *UserContext) GetCurrentScenario() Scenario {
 	//TODO: should we check if there is NO root scenario?
+	if len(uc.scenarioChain) == 0 {
+		return nil
+	}
 	return uc.scenarioChain[len(uc.scenarioChain)-1]
 }
 
-func (uc *UserContext) RenderMessage() string {
+func (uc *UserContext) RenderMessage() (string, error) {
 	return uc.GetCurrentScenario().RenderMessage()
 }
 
-func (uc *UserContext) HandleMessage(input string) string {
+func (uc *UserContext) HandleMessage(input string) (string, error) {
 	return uc.GetCurrentScenario().HandleMessage(input)
 }
 
 func (uc *UserContext) InvokeNextScenario(scenario Scenario, strategy InvokeStrategy) error {
 
 	thisScenario := uc.GetCurrentScenario()
-	err := scenario.EnterScenario(thisScenario)
+
+	err := scenario.InitScenario(uc)
+
 	if err != nil {
-		return errors.Wrap(err, "Fail to enter scenario : "+thisScenario.Name())
+		return errors.Wrap(err, "Fail to init scenario : "+scenario.Name())
+	}
+
+	err = scenario.EnterScenario(thisScenario)
+
+	if err != nil {
+		return errors.Wrap(err, "Fail to enter scenario : "+scenario.Name())
 	}
 	switch strategy {
 	case Stack:
