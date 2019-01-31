@@ -39,6 +39,13 @@ func (uc *UserContext) GetCurrentScenario() Scenario {
 	return uc.scenarioChain[len(uc.scenarioChain)-1]
 }
 
+func (uc *UserContext) GetRootScenario() Scenario {
+	if len(uc.scenarioChain) == 0 {
+		return nil
+	}
+	return uc.scenarioChain[0]
+}
+
 func (uc *UserContext) RenderMessage() (string, error) {
 	return uc.GetCurrentScenario().RenderMessage()
 }
@@ -64,6 +71,10 @@ func (uc *UserContext) InvokeNextScenario(scenario Scenario, strategy InvokeStra
 	}
 	switch strategy {
 	case Stack:
+		if oldScenario := uc.GetCurrentScenario(); oldScenario != nil {
+			oldScenario.ExitScenario(scenario)
+		}
+
 		uc.scenarioChain = append(uc.scenarioChain, scenario)
 	case Trim:
 		//Remove from 1 to end of slice
