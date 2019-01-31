@@ -16,7 +16,6 @@ type DefaultScenarioImpl struct {
 	stateList    map[string]ScenarioState
 	currentState ScenarioState
 	userContext  *UserContext
-	ScenarioSelf Scenario
 }
 
 func (dsi *DefaultScenarioImpl) getState(name string) ScenarioState {

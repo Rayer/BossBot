@@ -10,7 +10,6 @@ type RootScenario struct {
 }
 
 func (rs *RootScenario) InitScenario(uc *UserContext) error {
-	rs.ScenarioSelf = rs
 	rs.registerState("entry", &EntryState{}, rs)
 	rs.registerState("second", &SecondState{}, rs)
 	return nil
