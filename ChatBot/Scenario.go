@@ -9,13 +9,14 @@ type Scenario interface {
 
 	getState(name string) ScenarioState
 	changeStateByName(name string) error
-	registerState(name string, state ScenarioState)
+	registerState(name string, state ScenarioState, parentScenario Scenario)
 }
 
 type DefaultScenarioImpl struct {
 	stateList    map[string]ScenarioState
 	currentState ScenarioState
 	userContext  *UserContext
+	ScenarioSelf Scenario
 }
 
 func (dsi *DefaultScenarioImpl) getState(name string) ScenarioState {
@@ -28,7 +29,8 @@ func (dsi *DefaultScenarioImpl) changeStateByName(name string) error {
 	return nil
 }
 
-func (dsi *DefaultScenarioImpl) registerState(name string, state ScenarioState) {
+func (dsi *DefaultScenarioImpl) registerState(name string, state ScenarioState, parentScenario Scenario) {
+	state.SetParentScenario(parentScenario)
 	dsi.stateList[name] = state
 	if dsi.currentState == nil {
 		dsi.currentState = state

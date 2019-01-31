@@ -1,56 +1,51 @@
 package ChatBot
 
-import "strings"
+import (
+	log "github.com/sirupsen/logrus"
+	"strings"
+)
 
 type RootScenario struct {
 	DefaultScenarioImpl
 }
 
 func (rs *RootScenario) InitScenario(uc *UserContext) error {
-
-	es := EntryState{}
-	ss := SecondState{}
-	es.InitWithParent(rs)
-	ss.InitWithParent(rs)
-	rs.registerState("entry", &es)
-	rs.registerState("second", &ss)
+	rs.ScenarioSelf = rs
+	rs.registerState("entry", &EntryState{}, rs)
+	rs.registerState("second", &SecondState{}, rs)
 	return nil
 }
 
 func (rs *RootScenario) EnterScenario(source Scenario) error {
-	//Init states
+	log.Debugln("Entering root scenario")
 	return nil
 }
 
 func (rs *RootScenario) ExitScenario(askFrom Scenario) error {
+	log.Debugln("Exiting root scenario")
 	return nil
 }
 
 func (rs *RootScenario) DisposeScenario() error {
-	panic("implement me")
+	log.Debugln("Disposing root scenario")
+	return nil
 }
 
 //It's Scenario State
 //The only state of the root scenario
 type EntryState struct {
-	parent Scenario
-}
-
-func (es *EntryState) InitWithParent(parent Scenario) error {
-	es.parent = parent
-	es.parent.registerState("entry", es)
-	return nil
+	DefaultScenarioStateImpl
 }
 
 func (es *EntryState) RenderMessage() (string, error) {
-	return "This is an demo scenario and state. Are you going to invoke [first] one scenario or [second] scenario?", nil
+	return "Hey it's BossBot! Are you going to [submit report], [manage broadcasts] or [check]?", nil
 }
 
 func (es *EntryState) HandleMessage(input string) (string, error) {
-	if strings.Contains(input, "first") {
+	if strings.Contains(input, "submit report") {
 		es.parent.changeStateByName("second")
 		return "Exit with 1", nil
-	} else if strings.Contains(input, "second") {
+	} else if strings.Contains(input, "manage broadcast") {
 		es.parent.changeStateByName("second")
 		return "Exit with 2", nil
 	}
@@ -63,13 +58,7 @@ func (es *EntryState) GetParentScenario() Scenario {
 }
 
 type SecondState struct {
-	parent Scenario
-}
-
-func (ss *SecondState) InitWithParent(parent Scenario) error {
-	ss.parent = parent
-	parent.registerState("second", ss)
-	return nil
+	DefaultScenarioStateImpl
 }
 
 func (ss *SecondState) RenderMessage() (string, error) {
