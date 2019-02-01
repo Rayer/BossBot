@@ -4,6 +4,7 @@ type Scenario interface {
 	ScenarioCallback
 	RenderMessage() (string, error)
 	HandleMessage(input string) (string, error)
+	SetUserContext(user *UserContext)
 	GetUserContext() *UserContext
 	Name() string
 
@@ -24,6 +25,9 @@ func (dsi *DefaultScenarioImpl) getState(name string) ScenarioState {
 
 func (dsi *DefaultScenarioImpl) changeStateByName(name string) error {
 	state := dsi.stateList[name]
+	if state == nil {
+		panic("Can't find state " + name + " in the scenario!")
+	}
 	dsi.currentState = state
 	return nil
 }
@@ -42,6 +46,10 @@ func (dsi *DefaultScenarioImpl) RenderMessage() (string, error) {
 
 func (dsi *DefaultScenarioImpl) HandleMessage(input string) (string, error) {
 	return dsi.currentState.HandleMessage(input)
+}
+
+func (dsi *DefaultScenarioImpl) SetUserContext(user *UserContext) {
+	dsi.userContext = user
 }
 
 func (dsi *DefaultScenarioImpl) GetUserContext() *UserContext {

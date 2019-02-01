@@ -24,8 +24,10 @@ func NewUserContext(user string) *UserContext {
 		user: user,
 	}
 	//Put root scenario into chain
+	ret.scenarioChain = make([]Scenario, 0)
 	rs := RootScenario{}
 	rs.stateList = make(map[string]ScenarioState)
+	rs.SetUserContext(&ret)
 	ret.InvokeNextScenario(&rs, Stack)
 
 	return &ret
@@ -57,7 +59,12 @@ func (uc *UserContext) HandleMessage(input string) (string, error) {
 func (uc *UserContext) InvokeNextScenario(scenario Scenario, strategy InvokeStrategy) error {
 
 	thisScenario := uc.GetCurrentScenario()
+	if thisScenario == nil {
+		//It means it will be root scenario
+		uc.scenarioChain = append(uc.scenarioChain, scenario)
+	}
 
+	scenario.SetUserContext(uc)
 	err := scenario.InitScenario(uc)
 
 	if err != nil {
@@ -98,5 +105,17 @@ func (uc *UserContext) InvokeNextScenario(scenario Scenario, strategy InvokeStra
 		}
 		uc.scenarioChain[len(uc.scenarioChain)-1] = thisScenario
 	}
+	return nil
+}
+
+func (uc *UserContext) ReturnLastScenario() error {
+	var quitScenario Scenario
+	var currentScenario Scenario
+	quitScenario, uc.scenarioChain, currentScenario = uc.scenarioChain[len(uc.scenarioChain)-1], uc.scenarioChain[:len(uc.scenarioChain)-1], uc.scenarioChain[len(uc.scenarioChain)-1]
+
+	quitScenario.ExitScenario(quitScenario)
+	currentScenario.EnterScenario(quitScenario)
+	quitScenario.DisposeScenario()
+
 	return nil
 }

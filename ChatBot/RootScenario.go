@@ -42,10 +42,10 @@ func (es *EntryState) RenderMessage() (string, error) {
 
 func (es *EntryState) HandleMessage(input string) (string, error) {
 	if strings.Contains(input, "submit report") {
-		es.parent.changeStateByName("second")
-		return "Exit with 1", nil
+		es.GetParentScenario().GetUserContext().InvokeNextScenario(&ReportScenario{}, Stack)
+		return "Go to report scenario", nil
 	} else if strings.Contains(input, "manage broadcast") {
-		es.parent.changeStateByName("second")
+		es.GetParentScenario().changeStateByName("second")
 		return "Exit with 2", nil
 	}
 
@@ -78,8 +78,4 @@ func (ss *SecondState) GetParentScenario() Scenario {
 
 func (rs *RootScenario) Name() string {
 	return "RootScenario"
-}
-
-func (rs *RootScenario) GetUserContext() *UserContext {
-	return nil
 }
