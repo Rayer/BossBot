@@ -2,6 +2,7 @@ package ChatBot
 
 import (
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"time"
 )
 
@@ -28,7 +29,10 @@ func NewUserContext(user string) *UserContext {
 	rs := RootScenario{}
 	rs.stateList = make(map[string]ScenarioState)
 	rs.SetUserContext(&ret)
-	ret.InvokeNextScenario(&rs, Stack)
+	err := ret.InvokeNextScenario(&rs, Stack)
+	if err != nil {
+		log.Errorf("Error while trying to invoke root scenario : %s", err)
+	}
 
 	return &ret
 }
@@ -59,10 +63,6 @@ func (uc *UserContext) HandleMessage(input string) (string, error) {
 func (uc *UserContext) InvokeNextScenario(scenario Scenario, strategy InvokeStrategy) error {
 
 	thisScenario := uc.GetCurrentScenario()
-	if thisScenario == nil {
-		//It means it will be root scenario
-		uc.scenarioChain = append(uc.scenarioChain, scenario)
-	}
 
 	scenario.SetUserContext(uc)
 	err := scenario.InitScenario(uc)
@@ -79,7 +79,10 @@ func (uc *UserContext) InvokeNextScenario(scenario Scenario, strategy InvokeStra
 	switch strategy {
 	case Stack:
 		if oldScenario := uc.GetCurrentScenario(); oldScenario != nil {
-			oldScenario.ExitScenario(scenario)
+			err := oldScenario.ExitScenario(scenario)
+			if err != nil {
+				log.Warnf("Error while exiting scenario '%s', error : ", oldScenario.Name(), err)
+			}
 		}
 
 		uc.scenarioChain = append(uc.scenarioChain, scenario)
@@ -113,9 +116,23 @@ func (uc *UserContext) ReturnLastScenario() error {
 	var currentScenario Scenario
 	quitScenario, uc.scenarioChain, currentScenario = uc.scenarioChain[len(uc.scenarioChain)-1], uc.scenarioChain[:len(uc.scenarioChain)-1], uc.scenarioChain[len(uc.scenarioChain)-1]
 
-	quitScenario.ExitScenario(quitScenario)
-	currentScenario.EnterScenario(quitScenario)
-	quitScenario.DisposeScenario()
+	err := quitScenario.ExitScenario(quitScenario)
+
+	if err != nil {
+		log.Warnf("Error while ExitScenario for %s, error : %s", quitScenario.Name(), err)
+	}
+
+	err = currentScenario.EnterScenario(quitScenario)
+
+	if err != nil {
+		log.Warnf("Error while EnterScenario for %s, error : %s", currentScenario.Name(), err)
+	}
+
+	err = quitScenario.DisposeScenario()
+
+	if err != nil {
+		log.Warnf("Error while DisposeScenario for %s, error : %s", quitScenario.Name(), err)
+	}
 
 	return nil
 }
