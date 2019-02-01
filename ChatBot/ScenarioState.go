@@ -1,8 +1,20 @@
 package ChatBot
 
 type ScenarioState interface {
-	RenderMessage() string
-	HandleMessage() string
-	GetParentScenario() *Scenario
+	RenderMessage() (string, error)
+	HandleMessage(input string) (string, error)
+	GetParentScenario() Scenario
+	SetParentScenario(parent Scenario)
 }
 
+type DefaultScenarioStateImpl struct {
+	parent Scenario
+}
+
+func (dssi *DefaultScenarioStateImpl) GetParentScenario() Scenario {
+	return dssi.parent
+}
+
+func (dssi *DefaultScenarioStateImpl) SetParentScenario(parent Scenario) {
+	dssi.parent = parent
+}

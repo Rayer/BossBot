@@ -1,7 +1,9 @@
 package ChatBot
 
 type ScenarioCallback interface {
-	EnterScenario(source *Scenario) error
-	ExitScenario(askFrom *Scenario) error
+	//Work like constructor
+	InitScenario(uc *UserContext) error
+	EnterScenario(source Scenario) error
+	ExitScenario(askFrom Scenario) error
 	DisposeScenario() error
 }
