@@ -8,9 +8,9 @@ type Scenario interface {
 	GetUserContext() *UserContext
 	Name() string
 
-	getState(name string) ScenarioState
-	changeStateByName(name string) error
-	registerState(name string, state ScenarioState, parentScenario Scenario)
+	GetState(name string) ScenarioState
+	ChangeStateByName(name string) error
+	RegisterState(name string, state ScenarioState, parentScenario Scenario)
 }
 
 type DefaultScenarioImpl struct {
@@ -19,11 +19,15 @@ type DefaultScenarioImpl struct {
 	userContext  *UserContext
 }
 
-func (dsi *DefaultScenarioImpl) getState(name string) ScenarioState {
+func (dsi *DefaultScenarioImpl) InitScenario() {
+	dsi.stateList = make(map[string]ScenarioState)
+}
+
+func (dsi *DefaultScenarioImpl) GetState(name string) ScenarioState {
 	return dsi.stateList[name]
 }
 
-func (dsi *DefaultScenarioImpl) changeStateByName(name string) error {
+func (dsi *DefaultScenarioImpl) ChangeStateByName(name string) error {
 	state := dsi.stateList[name]
 	if state == nil {
 		panic("Can't find state " + name + " in the scenario!")
@@ -32,7 +36,7 @@ func (dsi *DefaultScenarioImpl) changeStateByName(name string) error {
 	return nil
 }
 
-func (dsi *DefaultScenarioImpl) registerState(name string, state ScenarioState, parentScenario Scenario) {
+func (dsi *DefaultScenarioImpl) RegisterState(name string, state ScenarioState, parentScenario Scenario) {
 	state.SetParentScenario(parentScenario)
 	dsi.stateList[name] = state
 	if dsi.currentState == nil {

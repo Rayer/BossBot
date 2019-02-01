@@ -1,26 +1,28 @@
 package ChatBot
 
 import (
+	"BossBotApp/ChatBot"
 	log "github.com/sirupsen/logrus"
 	"strings"
 )
 
 type RootScenario struct {
-	DefaultScenarioImpl
+	ChatBot.DefaultScenarioImpl
 }
 
-func (rs *RootScenario) InitScenario(uc *UserContext) error {
-	rs.registerState("entry", &EntryState{}, rs)
-	rs.registerState("second", &SecondState{}, rs)
+func (rs *RootScenario) InitScenario(uc *ChatBot.UserContext) error {
+	rs.DefaultScenarioImpl.InitScenario()
+	rs.RegisterState("entry", &EntryState{}, rs)
+	rs.RegisterState("second", &SecondState{}, rs)
 	return nil
 }
 
-func (rs *RootScenario) EnterScenario(source Scenario) error {
+func (rs *RootScenario) EnterScenario(source ChatBot.Scenario) error {
 	log.Debugln("Entering root scenario")
 	return nil
 }
 
-func (rs *RootScenario) ExitScenario(askFrom Scenario) error {
+func (rs *RootScenario) ExitScenario(askFrom ChatBot.Scenario) error {
 	log.Debugln("Exiting root scenario")
 	return nil
 }
@@ -33,7 +35,7 @@ func (rs *RootScenario) DisposeScenario() error {
 //It's Scenario State
 //The only state of the root scenario
 type EntryState struct {
-	DefaultScenarioStateImpl
+	ChatBot.DefaultScenarioStateImpl
 }
 
 func (es *EntryState) RenderMessage() (string, error) {
@@ -42,22 +44,18 @@ func (es *EntryState) RenderMessage() (string, error) {
 
 func (es *EntryState) HandleMessage(input string) (string, error) {
 	if strings.Contains(input, "submit report") {
-		es.GetParentScenario().GetUserContext().InvokeNextScenario(&ReportScenario{}, Stack)
+		es.GetParentScenario().GetUserContext().InvokeNextScenario(&ReportScenario{}, ChatBot.Stack)
 		return "Go to report scenario", nil
 	} else if strings.Contains(input, "manage broadcast") {
-		es.GetParentScenario().changeStateByName("second")
+		es.GetParentScenario().ChangeStateByName("second")
 		return "Exit with 2", nil
 	}
 
 	return "Nothing done", nil
 }
 
-func (es *EntryState) GetParentScenario() Scenario {
-	return es.parent
-}
-
 type SecondState struct {
-	DefaultScenarioStateImpl
+	ChatBot.DefaultScenarioStateImpl
 }
 
 func (ss *SecondState) RenderMessage() (string, error) {
@@ -66,14 +64,10 @@ func (ss *SecondState) RenderMessage() (string, error) {
 
 func (ss *SecondState) HandleMessage(input string) (string, error) {
 	if strings.Contains(input, "exit") {
-		ss.parent.changeStateByName("entry")
+		ss.GetParentScenario().ChangeStateByName("entry")
 		return "Exiting...", nil
 	}
 	return "Not exit, stay here.", nil
-}
-
-func (ss *SecondState) GetParentScenario() Scenario {
-	return ss.parent
 }
 
 func (rs *RootScenario) Name() string {

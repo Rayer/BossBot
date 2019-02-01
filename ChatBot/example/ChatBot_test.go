@@ -1,14 +1,19 @@
-package ChatBot
+package example
 
 import (
+	"BossBotApp/ChatBot"
 	log "github.com/sirupsen/logrus"
 	"testing"
 )
 
 func TestEssentials(t *testing.T) {
 	log.SetLevel(log.DebugLevel)
-	ctx := NewContextManager()
-	uc := ctx.GetUserContext("rayer")
+
+	ctx := ChatBot.NewContextManager()
+	uc := ctx.GetUserContext("rayer", func() ChatBot.Scenario {
+		return &RootScenario{}
+	})
+
 	sendMessage(uc, "submit report", t)
 	sendMessage(uc, "create report", t)
 	sendMessage(uc, "MCDS-12345 ggggg", t)
@@ -22,7 +27,7 @@ func TestEssentials(t *testing.T) {
 
 }
 
-func sendMessage(uc *UserContext, msg string, t *testing.T) {
+func sendMessage(uc *ChatBot.UserContext, msg string, t *testing.T) {
 	t.Log(uc.RenderMessage())
 	t.Log("-> " + msg)
 	t.Log(uc.HandleMessage(msg))
