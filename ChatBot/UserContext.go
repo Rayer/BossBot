@@ -81,7 +81,7 @@ func (uc *UserContext) InvokeNextScenario(scenario Scenario, strategy InvokeStra
 		if oldScenario := uc.GetCurrentScenario(); oldScenario != nil {
 			err := oldScenario.ExitScenario(scenario)
 			if err != nil {
-				log.Warnf("Error while exiting scenario '%s', error : ", oldScenario.Name(), err)
+				log.Warnf("Error while exiting scenario '%s', error : %s", oldScenario.Name(), err)
 			}
 		}
 
