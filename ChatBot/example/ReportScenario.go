@@ -3,19 +3,17 @@ package ChatBot
 import "strings"
 
 type ReportScenario struct {
-	DefaultScenarioImpl
+	ChatBot.DefaultScenarioImpl
 	ThisWeekInDev []string
 	ThisWeekDone  []string
 }
 
-func (rs *ReportScenario) InitScenario(uc *UserContext) error {
-	//TODO: Workaround
-	rs.stateList = make(map[string]ScenarioState)
-
-	rs.registerState("entry", &ReportEntryState{}, rs)
-	rs.registerState("creating_done", &ReportCreatingDone{}, rs)
-	rs.registerState("creating_indev", &ReportCreatingInDev{}, rs)
-	rs.registerState("confirm", &ReportConfirm{}, rs)
+func (rs *ReportScenario) InitScenario(uc *ChatBot.UserContext) error {
+	rs.DefaultScenarioImpl.InitScenario(uc)
+	rs.RegisterState("entry", &ReportEntryState{}, rs)
+	rs.RegisterState("creating_done", &ReportCreatingDone{}, rs)
+	rs.RegisterState("creating_indev", &ReportCreatingInDev{}, rs)
+	rs.RegisterState("confirm", &ReportConfirm{}, rs)
 	return nil
 }
 
@@ -44,7 +42,7 @@ States :
 */
 
 type ReportEntryState struct {
-	DefaultScenarioStateImpl
+	ChatBot.DefaultScenarioStateImpl
 }
 
 func (res *ReportEntryState) RenderMessage() (string, error) {
@@ -60,7 +58,7 @@ func (res *ReportEntryState) RenderMessage() (string, error) {
 
 func (res *ReportEntryState) HandleMessage(input string) (string, error) {
 	if strings.Contains(input, "create report") {
-		res.GetParentScenario().changeStateByName("creating_done")
+		res.GetParentScenario().ChangeStateByName("creating_done")
 		return "Ok let's creating a report", nil
 	} else if strings.Contains(input, "view report") {
 		return "Not really implemented in this prototype version... maybe later", nil
@@ -73,7 +71,7 @@ func (res *ReportEntryState) HandleMessage(input string) (string, error) {
 }
 
 type ReportCreatingDone struct {
-	DefaultScenarioStateImpl
+	ChatBot.DefaultScenarioStateImpl
 }
 
 func (rcd *ReportCreatingDone) RenderMessage() (string, error) {
@@ -82,7 +80,7 @@ func (rcd *ReportCreatingDone) RenderMessage() (string, error) {
 
 func (rcd *ReportCreatingDone) HandleMessage(input string) (string, error) {
 	if strings.Contains(input, "good for now") {
-		rcd.GetParentScenario().changeStateByName("creating_indev")
+		rcd.GetParentScenario().ChangeStateByName("creating_indev")
 		return "Done in done", nil
 	}
 
@@ -93,7 +91,7 @@ func (rcd *ReportCreatingDone) HandleMessage(input string) (string, error) {
 }
 
 type ReportCreatingInDev struct {
-	DefaultScenarioStateImpl
+	ChatBot.DefaultScenarioStateImpl
 }
 
 func (rcid *ReportCreatingInDev) RenderMessage() (string, error) {
@@ -102,7 +100,7 @@ func (rcid *ReportCreatingInDev) RenderMessage() (string, error) {
 
 func (rcid *ReportCreatingInDev) HandleMessage(input string) (string, error) {
 	if strings.Contains(input, "good for now") {
-		rcid.GetParentScenario().changeStateByName("confirm")
+		rcid.GetParentScenario().ChangeStateByName("confirm")
 		return "Done in dev", nil
 	}
 
@@ -113,7 +111,7 @@ func (rcid *ReportCreatingInDev) HandleMessage(input string) (string, error) {
 }
 
 type ReportConfirm struct {
-	DefaultScenarioStateImpl
+	ChatBot.DefaultScenarioStateImpl
 }
 
 func (rc *ReportConfirm) RenderMessage() (string, error) {

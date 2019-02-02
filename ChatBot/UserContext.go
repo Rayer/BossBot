@@ -20,16 +20,14 @@ const (
 	Replace InvokeStrategy = 2
 )
 
-func NewUserContext(user string) *UserContext {
+func NewUserContext(user string, rootScenario Scenario) *UserContext {
 	ret := UserContext{
 		user: user,
 	}
 	//Put root scenario into chain
 	ret.scenarioChain = make([]Scenario, 0)
-	rs := RootScenario{}
-	rs.stateList = make(map[string]ScenarioState)
-	rs.SetUserContext(&ret)
-	err := ret.InvokeNextScenario(&rs, Stack)
+	rootScenario.SetUserContext(&ret)
+	err := ret.InvokeNextScenario(rootScenario, Stack)
 	if err != nil {
 		log.Errorf("Error while trying to invoke root scenario : %s", err)
 	}
