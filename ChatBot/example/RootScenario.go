@@ -1,4 +1,4 @@
-package ChatBot
+package example
 
 import (
 	"BossBotApp/ChatBot"

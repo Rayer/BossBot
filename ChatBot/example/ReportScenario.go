@@ -1,6 +1,9 @@
-package ChatBot
+package example
 
-import "strings"
+import (
+	"BossBotApp/ChatBot"
+	"strings"
+)
 
 type ReportScenario struct {
 	ChatBot.DefaultScenarioImpl
@@ -17,11 +20,11 @@ func (rs *ReportScenario) InitScenario(uc *ChatBot.UserContext) error {
 	return nil
 }
 
-func (rs *ReportScenario) EnterScenario(source Scenario) error {
+func (rs *ReportScenario) EnterScenario(source ChatBot.Scenario) error {
 	return nil
 }
 
-func (rs *ReportScenario) ExitScenario(askFrom Scenario) error {
+func (rs *ReportScenario) ExitScenario(askFrom ChatBot.Scenario) error {
 	return nil
 }
 
