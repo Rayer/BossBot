@@ -10,7 +10,7 @@ func NewContextManager() *ContextManager {
 	return &ret
 }
 
-func (cm *ContextManager) GetUserContext(user string, entryScenario func() Scenario) *UserContext {
+func (cm *ContextManager) CreateUserContext(user string, entryScenario func() Scenario) *UserContext {
 	uc := cm.contextList[user]
 	if uc == nil {
 		uc = NewUserContext(user, entryScenario())
@@ -18,4 +18,9 @@ func (cm *ContextManager) GetUserContext(user string, entryScenario func() Scena
 	}
 	return uc
 
+}
+
+func (cm *ContextManager) GetUserContext(user string) *UserContext {
+	uc := cm.contextList[user]
+	return uc
 }

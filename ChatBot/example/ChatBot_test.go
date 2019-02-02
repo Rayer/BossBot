@@ -10,9 +10,12 @@ func TestEssentials(t *testing.T) {
 	log.SetLevel(log.DebugLevel)
 
 	ctx := ChatBot.NewContextManager()
-	uc := ctx.GetUserContext("rayer", func() ChatBot.Scenario {
-		return &RootScenario{}
-	})
+	uc := ctx.GetUserContext("rayer")
+	if uc == nil {
+		uc = ctx.CreateUserContext("rayer", func() ChatBot.Scenario {
+			return &RootScenario{}
+		})
+	}
 
 	sendMessage(uc, "submit report", t)
 	sendMessage(uc, "create report", t)
