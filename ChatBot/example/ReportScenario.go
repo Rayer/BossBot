@@ -9,8 +9,7 @@ type ReportScenario struct {
 }
 
 func (rs *ReportScenario) InitScenario(uc *ChatBot.UserContext) error {
-	//TODO: Workaround
-	rs.DefaultScenarioImpl.InitScenario()
+	rs.DefaultScenarioImpl.InitScenario(uc)
 	rs.RegisterState("entry", &ReportEntryState{}, rs)
 	rs.RegisterState("creating_done", &ReportCreatingDone{}, rs)
 	rs.RegisterState("creating_indev", &ReportCreatingInDev{}, rs)

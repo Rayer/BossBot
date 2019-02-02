@@ -19,8 +19,9 @@ type DefaultScenarioImpl struct {
 	userContext  *UserContext
 }
 
-func (dsi *DefaultScenarioImpl) InitScenario() {
+func (dsi *DefaultScenarioImpl) InitScenario(uc *UserContext) {
 	dsi.stateList = make(map[string]ScenarioState)
+	dsi.userContext = uc
 }
 
 func (dsi *DefaultScenarioImpl) GetState(name string) ScenarioState {

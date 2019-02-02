@@ -11,7 +11,7 @@ type RootScenario struct {
 }
 
 func (rs *RootScenario) InitScenario(uc *ChatBot.UserContext) error {
-	rs.DefaultScenarioImpl.InitScenario()
+	rs.DefaultScenarioImpl.InitScenario(uc)
 	rs.RegisterState("entry", &EntryState{}, rs)
 	rs.RegisterState("second", &SecondState{}, rs)
 	return nil
