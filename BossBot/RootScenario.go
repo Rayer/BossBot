@@ -1,8 +1,7 @@
-package example
+package BossBot
 
 import (
 	"ChatBot"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"strings"
 )
@@ -45,20 +44,14 @@ func (es *EntryState) RenderMessage() (string, error) {
 
 func (es *EntryState) HandleMessage(input string) (string, error) {
 	if strings.Contains(input, "submit report") {
-		err := es.GetParentScenario().GetUserContext().InvokeNextScenario(&ReportScenario{}, ChatBot.Stack)
-		if err != nil {
-			return "Error invoking report.... call Rayer to take a look?", errors.Wrap(err, "Error while invoking Report Scenario")
-		}
-		return "Ok let's make report then", nil
+		es.GetParentScenario().GetUserContext().InvokeNextScenario(&ReportScenario{}, ChatBot.Stack)
+		return "Go to report scenario", nil
 	} else if strings.Contains(input, "manage broadcast") {
 		es.GetParentScenario().ChangeStateByName("second")
-		return "Oops", nil
-	} else if strings.Contains(input, "check") {
-		es.GetParentScenario().ChangeStateByName("second")
-		return "Oops", nil
+		return "Exit with 2", nil
 	}
 
-	return "I am not really understand....", nil
+	return "Nothing done", nil
 }
 
 type SecondState struct {
@@ -66,7 +59,7 @@ type SecondState struct {
 }
 
 func (ss *SecondState) RenderMessage() (string, error) {
-	return "Here is under construction, you can only [exit] in order to get out of here", nil
+	return "This is second message, you can only [exit] in order to get out of here", nil
 }
 
 func (ss *SecondState) HandleMessage(input string) (string, error) {

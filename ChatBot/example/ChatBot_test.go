@@ -1,7 +1,7 @@
 package example
 
 import (
-	"BossBotApp/ChatBot"
+	"ChatBot"
 	log "github.com/sirupsen/logrus"
 	"testing"
 )
