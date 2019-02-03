@@ -1,4 +1,4 @@
-package example
+package BossBot
 
 import (
 	"ChatBot"
@@ -122,7 +122,7 @@ func (rc *ReportConfirm) RenderMessage() (string, error) {
 	indevList := rc.GetParentScenario().(*ReportScenario).ThisWeekInDev
 
 	ret := "Will you [submit] or [discard] follow report entries : "
-	ret = "Done : \n"
+	ret += "Done : \n"
 	for _, done := range doneList {
 		ret += done + "\n"
 	}

@@ -4,9 +4,12 @@ replace BossBot v0.0.0 => ./BossBot
 
 replace Utilities v0.0.0 => ./Utilities
 
+replace ChatBot v0.0.0 => ./ChatBot
+
 require BossBot v0.0.0
 
 require (
+	ChatBot v0.0.0
 	Utilities v0.0.0
 	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/lusis/go-slackbot v0.0.0-20180109053408-401027ccfef5 // indirect
