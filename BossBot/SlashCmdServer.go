@@ -114,6 +114,9 @@ func RespServer(conf Configuration) error {
 			switch ev := innerEvent.Data.(type) {
 			case *slackevents.AppMentionEvent:
 				slack_client.PostMessage(ev.Channel, "Yes, hello.", postParams)
+			case *slackevents.MessageAction:
+				//Need to render a message while open dm
+
 			case *slackevents.MessageEvent:
 				//Do bot part
 				msgevent := innerEvent.Data.(*slackevents.MessageEvent)
@@ -132,13 +135,14 @@ func RespServer(conf Configuration) error {
 					})
 				}
 
-				userContext.HandleMessage(msgevent.Text)
+				handledMessage, _ := userContext.HandleMessage(msgevent.Text)
+				if handledMessage != "" {
+					slack_client.PostMessage(msgevent.Channel, handledMessage, postParams)
+				}
 
 				ret, _ := userContext.RenderMessage()
-				log.Debugf("Writing message : %s", ret)
 
-				str1, str2, err := slack_client.PostMessage(msgevent.Channel, ret, postParams)
-				log.Debugf("%s, %s, %s", str1, str2, err)
+				slack_client.PostMessage(msgevent.Channel, ret, postParams)
 
 				return
 
