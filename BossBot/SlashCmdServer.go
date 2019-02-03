@@ -1,6 +1,8 @@
 package BossBot
 
 import (
+	"ChatBot"
+	"bytes"
 	"encoding/json"
 	"github.com/nlopes/slack"
 	"github.com/nlopes/slack/slackevents"
@@ -15,6 +17,8 @@ type MsgScheduleIdActions struct {
 
 func RespServer(conf Configuration) error {
 
+	slack_client := conf.ServiceContext.SlackClient
+	//slack_rtm := conf.ServiceContext.SlackRTM
 	http.HandleFunc("/slack/interactive", func(w http.ResponseWriter, r *http.Request) {
 		err := r.ParseForm()
 		if err != nil {
@@ -80,6 +84,66 @@ func RespServer(conf Configuration) error {
 		out, err := json.Marshal(ret)
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write(out)
+	})
+
+	//Events API
+	http.HandleFunc("/slack/events", func(w http.ResponseWriter, r *http.Request) {
+		buf := new(bytes.Buffer)
+		buf.ReadFrom(r.Body)
+		log.Debugf("Get event message : %s", buf)
+		body := buf.String()
+		eventsAPIEvent, e := slackevents.ParseEvent(json.RawMessage(body), slackevents.OptionVerifyToken(&slackevents.TokenComparator{conf.SlackVerifyToken}))
+		log.Debugf("Parse into events api event : %+v", eventsAPIEvent)
+		if e != nil {
+			log.Debugf("Error occured : %s", e)
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+
+		if eventsAPIEvent.Type == slackevents.URLVerification {
+			var r *slackevents.ChallengeResponse
+			err := json.Unmarshal([]byte(body), &r)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+			}
+			w.Header().Set("Content-Type", "text")
+			w.Write([]byte(r.Challenge))
+		}
+		if eventsAPIEvent.Type == slackevents.CallbackEvent {
+			postParams := slack.PostMessageParameters{}
+			innerEvent := eventsAPIEvent.InnerEvent
+			switch ev := innerEvent.Data.(type) {
+			case *slackevents.AppMentionEvent:
+				slack_client.PostMessage(ev.Channel, "Yes, hello.", postParams)
+			case *slackevents.MessageEvent:
+				//Do bot part
+				msgevent := innerEvent.Data.(*slackevents.MessageEvent)
+
+				//Discard message from bot
+				if msgevent.User == "" && msgevent.BotID != "" {
+					return
+				}
+
+				log.Debugf("Got message from user : %s  botid : %s with message : %s", msgevent.User, msgevent.BotID, msgevent.Text)
+				chatBot := conf.ServiceContext.ChatBotClient
+				userContext := chatBot.GetUserContext(msgevent.User)
+				if userContext == nil {
+					userContext = chatBot.CreateUserContext(msgevent.User, func() ChatBot.Scenario {
+						return &RootScenario{}
+					})
+				}
+
+				userContext.HandleMessage(msgevent.Text)
+
+				ret, _ := userContext.RenderMessage()
+				log.Debugf("Writing message : %s", ret)
+
+				str1, str2, err := slack_client.PostMessage(msgevent.Channel, ret, postParams)
+				log.Debugf("%s, %s, %s", str1, str2, err)
+
+				return
+
+			}
+		}
 	})
 
 	log.Println("Starting server....")

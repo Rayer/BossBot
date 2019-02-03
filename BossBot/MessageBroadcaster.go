@@ -17,7 +17,7 @@ type MessageBroadcaster struct {
 
 func (mb *MessageBroadcaster) Processing() error {
 
-	db := mb.config.Context.DBObject
+	db := mb.config.ServiceContext.DBObject
 
 	log.Println("Start process handling routine....")
 	conn := db.GetDB()
@@ -143,7 +143,7 @@ func tryBroadcast(broadcastItem Utilities.RowResult, conn *sql.DB) (int, error) 
 }
 
 func (mb *MessageBroadcaster) InvokeBroadcast(id int) (int, error) {
-	db := mb.config.Context.DBObject.GetDB()
+	db := mb.config.ServiceContext.DBObject.GetDB()
 
 	res, err := db.Query(`select bs.id, bm.message as message, bbc.webhook, bm.id as message_id
 	from bb_broadcast_schedule as bs
@@ -199,7 +199,7 @@ func (mb *MessageBroadcaster) InvokeBroadcast(id int) (int, error) {
 }
 
 func (mb *MessageBroadcaster) SetActive(schId int, active bool) error {
-	db := mb.config.Context.DBObject.GetDB()
+	db := mb.config.ServiceContext.DBObject.GetDB()
 
 	var isActive int
 	if active {
