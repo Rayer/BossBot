@@ -26,6 +26,7 @@ func NewUserContext(user string, rootScenario Scenario) *UserContext {
 	}
 	//Put root scenario into chain
 	ret.scenarioChain = make([]Scenario, 0)
+	ret.lastAccess = time.Now()
 	rootScenario.SetUserContext(&ret)
 	err := ret.InvokeNextScenario(rootScenario, Stack)
 	if err != nil {
@@ -51,11 +52,18 @@ func (uc *UserContext) GetRootScenario() Scenario {
 }
 
 func (uc *UserContext) RenderMessage() (string, error) {
-	return uc.GetCurrentScenario().RenderMessage()
+	uc.lastAccess = time.Now()
+	ret, err := uc.GetCurrentScenario().RenderMessage()
+	log.Infof("(%s)=>Rendering message : %s", uc.user, ret)
+	return ret, err
+
 }
 
 func (uc *UserContext) HandleMessage(input string) (string, error) {
-	return uc.GetCurrentScenario().HandleMessage(input)
+	uc.lastAccess = time.Now()
+	ret, err := uc.GetCurrentScenario().HandleMessage(input)
+	log.Infof("(%s)=>Rendering message : %s", uc.user, ret)
+	return ret, err
 }
 
 func (uc *UserContext) InvokeNextScenario(scenario Scenario, strategy InvokeStrategy) error {

@@ -9,16 +9,17 @@ import (
 )
 
 type Configuration struct {
-	LogLevel         uint32
-	SqlHost          string
-	SqlPort          uint32
-	SqlAcc           string
-	SqlPass          string
-	PIDFilePath      string
-	SlackAppToken    string
-	SlackBotToken    string
-	SlackVerifyToken string
-	ServiceContext   ServiceContext
+	LogLevel          uint32
+	SqlHost           string
+	SqlPort           uint32
+	SqlAcc            string
+	SqlPass           string
+	PIDFilePath       string
+	SlackAppToken     string
+	SlackBotToken     string
+	SlackVerifyToken  string
+	ServiceContext    ServiceContext
+	ChatBotResetTimer int
 }
 
 type ServiceContext struct {
@@ -38,6 +39,7 @@ func CreateConfigurationFromFile() (*Configuration, error) {
 
 	viper.SetDefault("SqlPort", 3306)
 	viper.SetDefault("PIDFilePath", ".")
+	viper.SetDefault("ChatBotResetTimer", 300)
 
 	//Stupid.... can we do better?
 	conf := &Configuration{}
@@ -50,6 +52,7 @@ func CreateConfigurationFromFile() (*Configuration, error) {
 	conf.SlackAppToken = viper.GetString("SlackAppToken")
 	conf.SlackBotToken = viper.GetString("SlackBotToken")
 	conf.SlackVerifyToken = viper.GetString("SlackVerifyToken")
+	conf.ChatBotResetTimer = viper.GetInt("ChatBotResetTimer")
 
 	conf.ServiceContext.SlackClient = slack.New(conf.SlackAppToken)
 	conf.ServiceContext.DBObject, err = Utilities.CreateDBObject(conf.SqlHost, conf.SqlAcc, conf.SqlPass)
