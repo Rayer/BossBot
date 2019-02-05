@@ -19,7 +19,7 @@ func (mb *MessageBroadcaster) Processing() error {
 
 	db := mb.config.ServiceContext.DBObject
 
-	log.Println("Start process handling routine....")
+	log.Debugln("Start process handling routine....")
 	conn := db.GetDB()
 
 	//This query includes : 1. active = 1 2. At least start or end date is assigned 3. date < end 4. date > start
@@ -138,7 +138,7 @@ func tryBroadcast(broadcastItem Utilities.RowResult, conn *sql.DB) (int, error) 
 	if err != nil {
 		return 1, errors.Wrap(err, "Message is sent but fail to update last_run in bb_broadcast_msg!")
 	}
-	log.Println("Successfully posted " + getContextAsString(broadcastItem, "message") + " to " + getContextAsString(broadcastItem, "webhook"))
+	log.Infoln("Successfully posted " + getContextAsString(broadcastItem, "message") + " to " + getContextAsString(broadcastItem, "webhook"))
 	return 1, nil
 }
 
