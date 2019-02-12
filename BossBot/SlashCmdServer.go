@@ -127,10 +127,23 @@ func RespServer(conf Configuration) error {
 				}
 
 				log.Debugf("Got message from user : %s  botid : %s with message : %s", msgevent.User, msgevent.BotID, msgevent.Text)
+
+				//Translate it to name
+				var name string
+				userProfile, err := slack_client.GetUserProfile(msgevent.User, false)
+				if err != nil {
+					log.Warnf("Can't translate slack uid %s to name, use uid instead of name", msgevent.User)
+					log.Warnf("error : %+v", err)
+					name = msgevent.User
+				} else {
+					log.Debugf("Found %s as %s", name, msgevent.User)
+					name = userProfile.DisplayName
+				}
+
 				chatBot := conf.ServiceContext.ChatBotClient
-				userContext := chatBot.GetUserContext(msgevent.User)
+				userContext := chatBot.GetUserContext(name)
 				if userContext == nil {
-					userContext = chatBot.CreateUserContext(msgevent.User, func() ChatBot.Scenario {
+					userContext = chatBot.CreateUserContext(name, func() ChatBot.Scenario {
 						return &RootScenario{}
 					})
 				}

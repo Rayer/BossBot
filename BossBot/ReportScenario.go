@@ -63,14 +63,20 @@ func (res *ReportEntryState) RenderMessage() (string, error) {
 
 	conf := GetConfiguration()
 	db := conf.ServiceContext.DBObject.GetDB()
-	slack_id := res.GetParentScenario().GetUserContext().User
+	name := res.GetParentScenario().GetUserContext().User
 	year, week := time.Now().ISOWeek()
-	result, err := db.Query("select * from bb_weekly_report where user_slack_id = ? and year = ? and week_of_year = ?", slack_id, year, week)
+	result, err := db.Query("select * from bb_weekly_report where user_id = ? and year = ? and week_of_year = ?", name, year, week)
 	if err != nil {
 		return "", errors.Wrap(err, "Error executing RenderMessage")
 	}
 
 	var retText string
+	defer func() {
+		err := result.Close()
+		if err != nil {
+			log.Warnf("Error closing query row : %+v", err)
+		}
+	}()
 	if result.Next() {
 		var weeklyReportItem WeeklyReportItem
 		err = Utilities.RowsToStruct("bb_data", result, &weeklyReportItem)
@@ -78,10 +84,10 @@ func (res *ReportEntryState) RenderMessage() (string, error) {
 			return "", errors.Wrap(err, "Fail to marshal datatype : WeeklyReportItem")
 		}
 
-		retText = fmt.Sprintf("Year %d week %d report --- \n Done : \n %s \n On Going : \n %s \n Would you like to [create report] or [exit]?", weeklyReportItem.Year, weeklyReportItem.WeekOfYear, weeklyReportItem.Done, weeklyReportItem.OnGoing)
+		retText = fmt.Sprintf("Hey %s, I see you have report : \nYear %d week %d report --- \nDone : \n%s\nOn Going :\n%s\n Would you like to [create report] or [exit]?", name, weeklyReportItem.Year, weeklyReportItem.WeekOfYear, weeklyReportItem.Done, weeklyReportItem.OnGoing)
 
 	} else {
-		retText = "Hey, we don't see logs this week. Would you like to [create report]? or [view reports] in previous weeks? You also can [exit] if no longer need to operating with logs"
+		retText = fmt.Sprintf("Hey %s, we don't see logs this week. Would you like to [create report]? or [view reports] in previous weeks? You also can [exit] if no longer need to operating with logs", name)
 	}
 
 	return retText, nil
@@ -200,7 +206,12 @@ func (rc *ReportConfirm) submitResult() error {
 	db := GetConfiguration().ServiceContext.DBObject.GetDB()
 	year, week := time.Now().ISOWeek()
 
-	_, err := db.Exec("insert into bb_weekly_report (year, week_of_year, user_slack_id, done, ongoing) values (?, ?, ?, ?, ?) ", year, week, slack_id, done, ongoing)
+	//Delete old entry
+	_, err := db.Exec("delete from bb_weekly_report where year = ? and week_of_year = ? and user_id = ?", year, week, slack_id)
+	if err != nil {
+		return errors.Wrap(err, "Error deleting old entry!")
+	}
+	_, err = db.Exec("insert into bb_weekly_report (year, week_of_year, user_id, done, ongoing) values (?, ?, ?, ?, ?) ", year, week, slack_id, done, ongoing)
 	if err != nil {
 		return errors.Wrap(err, "Error submitting result!")
 	}
