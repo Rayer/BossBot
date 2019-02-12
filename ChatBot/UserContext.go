@@ -7,9 +7,9 @@ import (
 )
 
 type UserContext struct {
-	user          string
-	scenarioChain []Scenario
-	lastAccess    time.Time
+	User          string
+	ScenarioChain []Scenario
+	LastAccess    time.Time
 }
 
 type InvokeStrategy int
@@ -22,11 +22,11 @@ const (
 
 func NewUserContext(user string, rootScenario Scenario) *UserContext {
 	ret := UserContext{
-		user: user,
+		User: user,
 	}
 	//Put root scenario into chain
-	ret.scenarioChain = make([]Scenario, 0)
-	ret.lastAccess = time.Now()
+	ret.ScenarioChain = make([]Scenario, 0)
+	ret.LastAccess = time.Now()
 	rootScenario.SetUserContext(&ret)
 	err := ret.InvokeNextScenario(rootScenario, Stack)
 	if err != nil {
@@ -38,31 +38,32 @@ func NewUserContext(user string, rootScenario Scenario) *UserContext {
 
 func (uc *UserContext) GetCurrentScenario() Scenario {
 	//TODO: should we check if there is NO root scenario?
-	if len(uc.scenarioChain) == 0 {
+	if len(uc.ScenarioChain) == 0 {
 		return nil
 	}
-	return uc.scenarioChain[len(uc.scenarioChain)-1]
+	return uc.ScenarioChain[len(uc.ScenarioChain)-1]
 }
 
 func (uc *UserContext) GetRootScenario() Scenario {
-	if len(uc.scenarioChain) == 0 {
+	if len(uc.ScenarioChain) == 0 {
 		return nil
 	}
-	return uc.scenarioChain[0]
+	return uc.ScenarioChain[0]
 }
 
 func (uc *UserContext) RenderMessage() (string, error) {
-	uc.lastAccess = time.Now()
+	uc.LastAccess = time.Now()
 	ret, err := uc.GetCurrentScenario().RenderMessage()
-	log.Infof("(%s)=>Rendering message : %s", uc.user, ret)
+	log.Infof("(%s)=>Rendering message : %s", uc.User, ret)
 	return ret, err
 
 }
 
 func (uc *UserContext) HandleMessage(input string) (string, error) {
-	uc.lastAccess = time.Now()
+	uc.LastAccess = time.Now()
 	ret, err := uc.GetCurrentScenario().HandleMessage(input)
-	log.Infof("(%s)=>Rendering message : %s", uc.user, ret)
+	log.Infof("(%s)=>Received message : %s", uc.User, input)
+	log.Infof("(%s)=>Rendering message : %s", uc.User, ret)
 	return ret, err
 }
 
@@ -91,10 +92,10 @@ func (uc *UserContext) InvokeNextScenario(scenario Scenario, strategy InvokeStra
 			}
 		}
 
-		uc.scenarioChain = append(uc.scenarioChain, scenario)
+		uc.ScenarioChain = append(uc.ScenarioChain, scenario)
 	case Trim:
 		//Remove from 1 to end of slice
-		for idx, s := range uc.scenarioChain {
+		for idx, s := range uc.ScenarioChain {
 			if idx == 0 {
 				continue
 			}
@@ -103,16 +104,16 @@ func (uc *UserContext) InvokeNextScenario(scenario Scenario, strategy InvokeStra
 				return errors.Wrap(err, "Error while exiting scenario : "+s.Name())
 			}
 		}
-		uc.scenarioChain = append([]Scenario{}, uc.scenarioChain[0], scenario)
+		uc.ScenarioChain = append([]Scenario{}, uc.ScenarioChain[0], scenario)
 
 	case Replace:
 		//TODO: Root scenario can't be replaced
-		old := uc.scenarioChain[len(uc.scenarioChain)-1]
+		old := uc.ScenarioChain[len(uc.ScenarioChain)-1]
 		err = old.ExitScenario(thisScenario)
 		if err != nil {
 			return errors.Wrap(err, "Error while exiting scenario : "+old.Name())
 		}
-		uc.scenarioChain[len(uc.scenarioChain)-1] = thisScenario
+		uc.ScenarioChain[len(uc.ScenarioChain)-1] = thisScenario
 	}
 	return nil
 }
@@ -120,7 +121,7 @@ func (uc *UserContext) InvokeNextScenario(scenario Scenario, strategy InvokeStra
 func (uc *UserContext) ReturnLastScenario() error {
 	var quitScenario Scenario
 	var currentScenario Scenario
-	quitScenario, uc.scenarioChain, currentScenario = uc.scenarioChain[len(uc.scenarioChain)-1], uc.scenarioChain[:len(uc.scenarioChain)-1], uc.scenarioChain[len(uc.scenarioChain)-1]
+	quitScenario, uc.ScenarioChain, currentScenario = uc.ScenarioChain[len(uc.ScenarioChain)-1], uc.ScenarioChain[:len(uc.ScenarioChain)-1], uc.ScenarioChain[len(uc.ScenarioChain)-1]
 
 	err := quitScenario.ExitScenario(quitScenario)
 

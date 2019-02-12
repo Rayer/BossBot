@@ -29,6 +29,20 @@ type ServiceContext struct {
 	ChatBotClient *ChatBot.ContextManager
 }
 
+var globalConfig *Configuration
+
+func GetConfiguration() *Configuration {
+	if globalConfig == nil {
+		_, err := CreateConfigurationFromFile()
+		if err != nil {
+			panic("Fail to load configuration from file!")
+		}
+	}
+
+	return globalConfig
+}
+
+//TODO: Error will always be NOT nil, need to improve it?
 func CreateConfigurationFromFile() (*Configuration, error) {
 	viper.SetConfigName("BossBot")
 	viper.AddConfigPath(".")
@@ -62,6 +76,8 @@ func CreateConfigurationFromFile() (*Configuration, error) {
 	conf.ServiceContext.ChatBotClient = ChatBot.NewContextManager()
 	//rtm := conf.ServiceContext.SlackClient.NewRTM()
 	//go rtm.ManageConnection()
+
+	globalConfig = conf
 
 	return conf, nil
 }

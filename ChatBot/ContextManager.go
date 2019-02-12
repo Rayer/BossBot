@@ -47,9 +47,9 @@ func (cm *ContextManager) GetUserContext(user string) *UserContext {
 	uc := cm.contextList[user]
 	//Purge slice... it's stupid but it seems most maintainable way
 	if uc != nil {
-		log.Debugf("User %s, last session %v seconds ago...", user, time.Now().Sub(uc.lastAccess).Seconds())
+		log.Debugf("User %s, last session %v seconds ago...", user, time.Now().Sub(uc.LastAccess).Seconds())
 	}
-	if uc != nil && int(time.Now().Sub(uc.lastAccess).Seconds()) > cm.Configuration.ResetTimerSec {
+	if uc != nil && int(time.Now().Sub(uc.LastAccess).Seconds()) > cm.Configuration.ResetTimerSec {
 		log.Infof("Re-Create ChatBot session %s due to timeout", user)
 		cm.contextList[user] = nil
 		return nil
