@@ -49,6 +49,7 @@ func (db *DBObject) GetDB() *sql.DB {
 type RowResult map[string]interface{}
 
 //map[string]interface{} waste more memory then map[string][]interface{}, but let use it first
+//TODO: It is sunsetting, and will be deprecated. Use RawsToStruct in SQLOrm.go instead.
 func QueryToMap(conn *sql.DB, queryString string) ([]RowResult, error) {
 	result, err := conn.Query(queryString)
 	if err != nil {

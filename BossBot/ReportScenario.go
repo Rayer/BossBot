@@ -2,7 +2,12 @@ package BossBot
 
 import (
 	"ChatBot"
+	"Utilities"
+	"fmt"
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"strings"
+	"time"
 )
 
 type ReportScenario struct {
@@ -56,7 +61,30 @@ func (res *ReportEntryState) RenderMessage() (string, error) {
 		3. If no report in this week, ask user to create one
 	*/
 
-	return "Hey, we don't see logs this week. Would you like to [create report]? or [view reports] in previous weeks? You also can [exit] if no longer need to operating with logs", nil
+	conf := GetConfiguration()
+	db := conf.ServiceContext.DBObject.GetDB()
+	slack_id := res.GetParentScenario().GetUserContext().User
+	year, week := time.Now().ISOWeek()
+	result, err := db.Query("select * from bb_weekly_report where user_slack_id = ? and year = ? and week_of_year = ?", slack_id, year, week)
+	if err != nil {
+		return "", errors.Wrap(err, "Error executing RenderMessage")
+	}
+
+	var retText string
+	if result.Next() {
+		var weeklyReportItem WeeklyReportItem
+		err = Utilities.RowsToStruct("bb_data", result, &weeklyReportItem)
+		if err != nil {
+			return "", errors.Wrap(err, "Fail to marshal datatype : WeeklyReportItem")
+		}
+
+		retText = fmt.Sprintf("Year %d week %d report --- \n Done : \n %s \n On Going : \n %s \n Would you like to [create report] or [exit]?", weeklyReportItem.Year, weeklyReportItem.WeekOfYear, weeklyReportItem.Done, weeklyReportItem.OnGoing)
+
+	} else {
+		retText = "Hey, we don't see logs this week. Would you like to [create report]? or [view reports] in previous weeks? You also can [exit] if no longer need to operating with logs"
+	}
+
+	return retText, nil
 }
 
 func (res *ReportEntryState) HandleMessage(input string) (string, error) {
@@ -110,7 +138,7 @@ func (rcid *ReportCreatingInDev) HandleMessage(input string) (string, error) {
 	indevList := rcid.GetParentScenario().(*ReportScenario).ThisWeekInDev
 	rcid.GetParentScenario().(*ReportScenario).ThisWeekInDev = append(indevList, input)
 
-	return "Recorded (indev): " + input, nil
+	return "Recorded (On Going): " + input, nil
 }
 
 type ReportConfirm struct {
@@ -138,6 +166,11 @@ func (rc *ReportConfirm) RenderMessage() (string, error) {
 
 func (rc *ReportConfirm) HandleMessage(input string) (string, error) {
 	if strings.Contains(input, "submit") {
+		err := rc.submitResult()
+		if err != nil {
+			log.Errorf("Error : %+v", err)
+			return "Error submitting report!", errors.Wrap(err, "Error submitting report!")
+		}
 		rc.GetParentScenario().GetUserContext().ReturnLastScenario()
 		return "Submitted", nil
 	} else if strings.Contains(input, "discard") {
@@ -146,4 +179,31 @@ func (rc *ReportConfirm) HandleMessage(input string) (string, error) {
 	}
 
 	return "I don't really understand.....", nil
+}
+
+func (rc *ReportConfirm) submitResult() error {
+	parent := rc.GetParentScenario().(*ReportScenario)
+	var done string
+	var ongoing string
+
+	for _, d := range parent.ThisWeekDone {
+		done += d
+		done += "\n"
+	}
+
+	for _, o := range parent.ThisWeekInDev {
+		ongoing += o
+		ongoing += "\n"
+	}
+
+	slack_id := parent.GetUserContext().User
+	db := GetConfiguration().ServiceContext.DBObject.GetDB()
+	year, week := time.Now().ISOWeek()
+
+	_, err := db.Exec("insert into bb_weekly_report (year, week_of_year, user_slack_id, done, ongoing) values (?, ?, ?, ?, ?) ", year, week, slack_id, done, ongoing)
+	if err != nil {
+		return errors.Wrap(err, "Error submitting result!")
+	}
+
+	return nil
 }
