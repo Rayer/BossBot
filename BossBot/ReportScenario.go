@@ -2,7 +2,12 @@ package BossBot
 
 import (
 	"ChatBot"
+	"Utilities"
+	"fmt"
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"strings"
+	"time"
 )
 
 type ReportScenario struct {
@@ -56,17 +61,46 @@ func (res *ReportEntryState) RenderMessage() (string, error) {
 		3. If no report in this week, ask user to create one
 	*/
 
-	return "Hey, we don't see logs this week. Would you like to [create report]? or [view reports] in previous weeks? You also can [exit] if no longer need to operating with logs", nil
+	conf := GetConfiguration()
+	db := conf.ServiceContext.DBObject.GetDB()
+	name := res.GetParentScenario().GetUserContext().User
+	year, week := time.Now().ISOWeek()
+	result, err := db.Query("select * from bb_weekly_report where user_id = ? and year = ? and week_of_year = ?", name, year, week)
+	if err != nil {
+		return "", errors.Wrap(err, "Error executing RenderMessage")
+	}
+
+	var retText string
+	defer func() {
+		err := result.Close()
+		if err != nil {
+			log.Warnf("Error closing query row : %+v", err)
+		}
+	}()
+	if result.Next() {
+		var weeklyReportItem WeeklyReportItem
+		err = Utilities.RowsToStruct("bb_data", result, &weeklyReportItem)
+		if err != nil {
+			return "", errors.Wrap(err, "Fail to marshal datatype : WeeklyReportItem")
+		}
+
+		retText = fmt.Sprintf("Hey %s, I see you have report : \nYear %d week %d report --- \nDone : \n%s\nOn Going :\n%s\n Would you like to [create report] or [exit]?", name, weeklyReportItem.Year, weeklyReportItem.WeekOfYear, weeklyReportItem.Done, weeklyReportItem.OnGoing)
+
+	} else {
+		retText = fmt.Sprintf("Hey %s, we don't see logs this week. Would you like to [create report]? or [view reports] in previous weeks? You also can [exit] if no longer need to operating with logs", name)
+	}
+
+	return retText, nil
 }
 
 func (res *ReportEntryState) HandleMessage(input string) (string, error) {
 	if strings.Contains(input, "create report") {
-		res.GetParentScenario().ChangeStateByName("creating_done")
+		_ = res.GetParentScenario().ChangeStateByName("creating_done")
 		return "Ok let's creating a report", nil
 	} else if strings.Contains(input, "view report") {
 		return "Not really implemented in this prototype version... maybe later", nil
 	} else if strings.Contains(input, "exit") {
-		res.GetParentScenario().GetUserContext().ReturnLastScenario()
+		_ = res.GetParentScenario().GetUserContext().ReturnLastScenario()
 		return "Let's back to previous session", nil
 	}
 
@@ -83,7 +117,7 @@ func (rcd *ReportCreatingDone) RenderMessage() (string, error) {
 
 func (rcd *ReportCreatingDone) HandleMessage(input string) (string, error) {
 	if strings.Contains(input, "good for now") {
-		rcd.GetParentScenario().ChangeStateByName("creating_indev")
+		_ = rcd.GetParentScenario().ChangeStateByName("creating_indev")
 		return "Done in done", nil
 	}
 
@@ -110,7 +144,7 @@ func (rcid *ReportCreatingInDev) HandleMessage(input string) (string, error) {
 	indevList := rcid.GetParentScenario().(*ReportScenario).ThisWeekInDev
 	rcid.GetParentScenario().(*ReportScenario).ThisWeekInDev = append(indevList, input)
 
-	return "Recorded (indev): " + input, nil
+	return "Recorded (On Going): " + input, nil
 }
 
 type ReportConfirm struct {
@@ -138,12 +172,49 @@ func (rc *ReportConfirm) RenderMessage() (string, error) {
 
 func (rc *ReportConfirm) HandleMessage(input string) (string, error) {
 	if strings.Contains(input, "submit") {
-		rc.GetParentScenario().GetUserContext().ReturnLastScenario()
+		err := rc.submitResult()
+		if err != nil {
+			log.Errorf("Error : %+v", err)
+			return "Error submitting report!", errors.Wrap(err, "Error submitting report!")
+		}
+		_ = rc.GetParentScenario().GetUserContext().ReturnLastScenario()
 		return "Submitted", nil
 	} else if strings.Contains(input, "discard") {
-		rc.GetParentScenario().GetUserContext().ReturnLastScenario()
+		_ = rc.GetParentScenario().GetUserContext().ReturnLastScenario()
 		return "Discarded", nil
 	}
 
 	return "I don't really understand.....", nil
+}
+
+func (rc *ReportConfirm) submitResult() error {
+	parent := rc.GetParentScenario().(*ReportScenario)
+	var done string
+	var ongoing string
+
+	for _, d := range parent.ThisWeekDone {
+		done += d
+		done += "\n"
+	}
+
+	for _, o := range parent.ThisWeekInDev {
+		ongoing += o
+		ongoing += "\n"
+	}
+
+	user := parent.GetUserContext().User
+	db := GetConfiguration().ServiceContext.DBObject.GetDB()
+	year, week := time.Now().ISOWeek()
+
+	//Delete old entry
+	_, err := db.Exec("delete from bb_weekly_report where year = ? and week_of_year = ? and user_id = ?", year, week, user)
+	if err != nil {
+		return errors.Wrap(err, "Error deleting old entry!")
+	}
+	_, err = db.Exec("insert into bb_weekly_report (year, week_of_year, user_id, done, ongoing) values (?, ?, ?, ?, ?) ", year, week, user, done, ongoing)
+	if err != nil {
+		return errors.Wrap(err, "Error submitting result!")
+	}
+
+	return nil
 }

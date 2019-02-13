@@ -39,6 +39,7 @@ type EntryState struct {
 }
 
 func (es *EntryState) RenderMessage() (string, error) {
+
 	return "Hey it's BossBot! Are you going to [submit report], [manage broadcasts] or [check]?", nil
 }
 
