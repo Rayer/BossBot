@@ -95,12 +95,12 @@ func (res *ReportEntryState) RenderMessage() (string, error) {
 
 func (res *ReportEntryState) HandleMessage(input string) (string, error) {
 	if strings.Contains(input, "create report") {
-		res.GetParentScenario().ChangeStateByName("creating_done")
+		_ = res.GetParentScenario().ChangeStateByName("creating_done")
 		return "Ok let's creating a report", nil
 	} else if strings.Contains(input, "view report") {
 		return "Not really implemented in this prototype version... maybe later", nil
 	} else if strings.Contains(input, "exit") {
-		res.GetParentScenario().GetUserContext().ReturnLastScenario()
+		_ = res.GetParentScenario().GetUserContext().ReturnLastScenario()
 		return "Let's back to previous session", nil
 	}
 
@@ -117,7 +117,7 @@ func (rcd *ReportCreatingDone) RenderMessage() (string, error) {
 
 func (rcd *ReportCreatingDone) HandleMessage(input string) (string, error) {
 	if strings.Contains(input, "good for now") {
-		rcd.GetParentScenario().ChangeStateByName("creating_indev")
+		_ = rcd.GetParentScenario().ChangeStateByName("creating_indev")
 		return "Done in done", nil
 	}
 
@@ -177,10 +177,10 @@ func (rc *ReportConfirm) HandleMessage(input string) (string, error) {
 			log.Errorf("Error : %+v", err)
 			return "Error submitting report!", errors.Wrap(err, "Error submitting report!")
 		}
-		rc.GetParentScenario().GetUserContext().ReturnLastScenario()
+		_ = rc.GetParentScenario().GetUserContext().ReturnLastScenario()
 		return "Submitted", nil
 	} else if strings.Contains(input, "discard") {
-		rc.GetParentScenario().GetUserContext().ReturnLastScenario()
+		_ = rc.GetParentScenario().GetUserContext().ReturnLastScenario()
 		return "Discarded", nil
 	}
 
@@ -202,16 +202,16 @@ func (rc *ReportConfirm) submitResult() error {
 		ongoing += "\n"
 	}
 
-	slack_id := parent.GetUserContext().User
+	user := parent.GetUserContext().User
 	db := GetConfiguration().ServiceContext.DBObject.GetDB()
 	year, week := time.Now().ISOWeek()
 
 	//Delete old entry
-	_, err := db.Exec("delete from bb_weekly_report where year = ? and week_of_year = ? and user_id = ?", year, week, slack_id)
+	_, err := db.Exec("delete from bb_weekly_report where year = ? and week_of_year = ? and user_id = ?", year, week, user)
 	if err != nil {
 		return errors.Wrap(err, "Error deleting old entry!")
 	}
-	_, err = db.Exec("insert into bb_weekly_report (year, week_of_year, user_id, done, ongoing) values (?, ?, ?, ?, ?) ", year, week, slack_id, done, ongoing)
+	_, err = db.Exec("insert into bb_weekly_report (year, week_of_year, user_id, done, ongoing) values (?, ?, ?, ?, ?) ", year, week, user, done, ongoing)
 	if err != nil {
 		return errors.Wrap(err, "Error submitting result!")
 	}
