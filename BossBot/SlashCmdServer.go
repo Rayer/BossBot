@@ -109,7 +109,7 @@ func RespServer(conf Configuration) error {
 			w.Write([]byte(r.Challenge))
 		}
 		if eventsAPIEvent.Type == slackevents.CallbackEvent {
-			postParams := slack.PostMessageParameters{}
+			postParams := slack.NewPostMessageParameters()
 			innerEvent := eventsAPIEvent.InnerEvent
 			switch ev := innerEvent.Data.(type) {
 			case *slackevents.AppMentionEvent:
@@ -155,11 +155,11 @@ func RespServer(conf Configuration) error {
 					slack_client.PostMessage(msgevent.Channel, handledMessage, postParams)
 				}
 
-				//ret, _ := userContext.RenderMessage()
-				response, attachments, err := userContext.GetCurrentScenario().(SlackScenario).RenderSlackMessage()
+				currentScenario := userContext.GetCurrentScenario()
+				response, attachments, err := currentScenario.(SlackScenario).RenderSlackMessage()
 
 				postParams.Attachments = attachments
-				//But we only care about first attachments
+				log.Debugf("PostParams : %+v", postParams)
 
 				slack_client.PostMessage(msgevent.Channel, response, postParams)
 

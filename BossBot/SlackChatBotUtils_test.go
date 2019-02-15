@@ -1,6 +1,7 @@
 package BossBot
 
 import (
+	"ChatBot"
 	"regexp"
 	"testing"
 )
@@ -15,29 +16,11 @@ func TestRegexCompile(t *testing.T) {
 
 }
 
-type OuterInterface interface {
-	interface1method()
-}
+func TestMessageHandler(t *testing.T) {
+	ctx := ChatBot.NewContextManager()
+	utx := ctx.CreateUserContext("BotSpec", func() ChatBot.Scenario {
+		return &RootScenario{}
+	})
 
-type OuterInterfaceImpl struct {
-	num  int
-	char string
-}
-
-func NewOuterInterfaceImpl(num int, char string) *OuterInterfaceImpl {
-	return &OuterInterfaceImpl{num: num, char: char}
-}
-
-type testbed struct {
-	OuterInterfaceImpl
-}
-
-func newTestbed() *testbed {
-	return &testbed{OuterInterfaceImpl: *NewOuterInterfaceImpl(1, "ccc")}
-}
-
-func TestEmbedded(t *testing.T) {
-	tb := newTestbed()
-	t.Log(*tb)
-	t.Logf("%+v", *tb)
+	t.Log(utx.GetCurrentScenario().(SlackScenario).RenderSlackMessage())
 }

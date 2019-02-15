@@ -21,7 +21,7 @@ func (ssi *SlackScenarioImpl) InitSlackScenario(scenario ChatBot.Scenario) {
 	ssi.parentScenario = scenario
 }
 
-func (ssi *SlackScenarioImpl) RenderSlackMessage(input string) (string, []slack.Attachment, error) {
+func (ssi *SlackScenarioImpl) RenderSlackMessage() (string, []slack.Attachment, error) {
 	currentState := ssi.parentScenario.GetCurrentState()
 	res, err := currentState.RenderMessage()
 	if err != nil {
@@ -35,7 +35,7 @@ func (ssi *SlackScenarioImpl) RenderSlackMessage(input string) (string, []slack.
 		return res, nil, nil
 	}
 
-	msgHandler := s.GetKeywordHandler()
+	msgHandler := s.KeywordHandler()
 	attachment := msgHandler.GenerateAttachment(res)
 
 	return res, []slack.Attachment{attachment}, nil
@@ -46,7 +46,7 @@ func (*SlackScenarioImpl) ResponseSlackCallbacks() {
 }
 
 type SlackScenarioState interface {
-	GetKeywordHandler() *KeywordHandler
+	KeywordHandler() *KeywordHandler
 }
 
 type SlackScenarioStateImpl struct {
@@ -82,6 +82,7 @@ func (kh *KeywordHandler) RegisterKeyword(keyword *Keyword) {
 	if kh.keywordList == nil {
 		kh.keywordList = []Keyword{}
 	}
+	kh.keywordList = append(kh.keywordList, *keyword)
 }
 
 func (kh *KeywordHandler) GenerateAttachment(input string) slack.Attachment {
@@ -95,9 +96,13 @@ func (kh *KeywordHandler) GenerateAttachment(input string) slack.Attachment {
 	for _, keywordDefine := range kh.keywordList {
 		//TODO: Maybe we should use map to avoid O(n^2)?
 		for _, keyword := range keywords {
+			keyword = strings.Replace(keyword, "[", "", -1)
+			keyword = strings.Replace(keyword, "]", "", -1)
+
 			if keywordDefine.Keyword == keyword {
 				actions = append(actions, slack.AttachmentAction{
 					Text: strings.Title(keyword),
+					Name: strings.Title(keyword),
 					Type: "button",
 				})
 				break

@@ -13,6 +13,7 @@ type RootScenario struct {
 
 func (rs *RootScenario) InitScenario(uc *ChatBot.UserContext) error {
 	rs.DefaultScenarioImpl.InitScenario(uc)
+	rs.SlackScenarioImpl.InitSlackScenario(rs)
 	rs.RegisterState("entry", &EntryState{}, rs)
 	rs.RegisterState("second", &SecondState{}, rs)
 	return nil
@@ -38,9 +39,11 @@ func (rs *RootScenario) DisposeScenario() error {
 type EntryState struct {
 	ChatBot.DefaultScenarioStateImpl
 	SlackScenarioStateImpl
+	name string
 }
 
 func (es *EntryState) InitScenarioState(scenario ChatBot.Scenario) {
+	es.name = "EntryState"
 	es.SlackScenarioStateImpl = *NewSlackScenarioStateImpl(es)
 	es.keywordHandler.RegisterKeyword(&Keyword{
 		Keyword: "submit report",
@@ -77,10 +80,18 @@ func (es *EntryState) HandleMessage(input string) (string, error) {
 
 type SecondState struct {
 	ChatBot.DefaultScenarioStateImpl
+	SlackScenarioStateImpl
 }
 
 func (ss *SecondState) InitScenarioState(scenario ChatBot.Scenario) {
-	//panic("implement me")
+	ss.SlackScenarioStateImpl = *NewSlackScenarioStateImpl(ss)
+	ss.KeywordHandler().RegisterKeyword(&Keyword{
+		Keyword: "exit",
+		Action: func(keyword string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) string {
+			scenario.ChangeStateByName("entry")
+			return "Exiting..."
+		},
+	})
 }
 
 func (ss *SecondState) RenderMessage() (string, error) {
