@@ -8,8 +8,57 @@ import (
 )
 
 type SlackScenario interface {
-	RenderSlackAttachments(string) []slack.Attachment
+	ChatBot.Scenario
+	RenderSlackMessage() (string, []slack.Attachment, error)
 	ResponseSlackCallbacks()
+}
+
+type SlackScenarioImpl struct {
+	parentScenario ChatBot.Scenario
+}
+
+func (ssi *SlackScenarioImpl) InitSlackScenario(scenario ChatBot.Scenario) {
+	ssi.parentScenario = scenario
+}
+
+func (ssi *SlackScenarioImpl) RenderSlackMessage(input string) (string, []slack.Attachment, error) {
+	currentState := ssi.parentScenario.GetCurrentState()
+	res, err := currentState.RenderMessage()
+	if err != nil {
+		//log.Errorf(err)
+		return "Error!", nil, err
+	}
+
+	s, ok := currentState.(SlackScenarioState)
+
+	if !ok {
+		return res, nil, nil
+	}
+
+	msgHandler := s.GetKeywordHandler()
+	attachment := msgHandler.GenerateAttachment(res)
+
+	return res, []slack.Attachment{attachment}, nil
+}
+
+func (*SlackScenarioImpl) ResponseSlackCallbacks() {
+	panic("implement me")
+}
+
+type SlackScenarioState interface {
+	GetKeywordHandler() *KeywordHandler
+}
+
+type SlackScenarioStateImpl struct {
+	keywordHandler *KeywordHandler
+}
+
+func (s *SlackScenarioStateImpl) KeywordHandler() *KeywordHandler {
+	return s.keywordHandler
+}
+
+func NewSlackScenarioStateImpl(state ChatBot.ScenarioState) *SlackScenarioStateImpl {
+	return &SlackScenarioStateImpl{keywordHandler: NewKeywordHandler(state.GetParentScenario(), state)}
 }
 
 type KeywordAction func(keyword string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) string
@@ -35,7 +84,7 @@ func (kh *KeywordHandler) RegisterKeyword(keyword *Keyword) {
 	}
 }
 
-func (kh *KeywordHandler) GenerateAttachments(input string) slack.Attachment {
+func (kh *KeywordHandler) GenerateAttachment(input string) slack.Attachment {
 	//Find all surrended by "[]"
 	r, _ := regexp.Compile(`\[([A-Za-z 0-9_]*)]`)
 	keywords := r.FindAllString(input, -1)

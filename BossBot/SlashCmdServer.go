@@ -148,14 +148,20 @@ func RespServer(conf Configuration) error {
 					})
 				}
 
+				//handledMessage, _ := userContext.HandleMessage(msgevent.Text)
 				handledMessage, _ := userContext.HandleMessage(msgevent.Text)
+
 				if handledMessage != "" {
 					slack_client.PostMessage(msgevent.Channel, handledMessage, postParams)
 				}
 
-				ret, _ := userContext.RenderMessage()
+				//ret, _ := userContext.RenderMessage()
+				response, attachments, err := userContext.GetCurrentScenario().(SlackScenario).RenderSlackMessage()
 
-				slack_client.PostMessage(msgevent.Channel, ret, postParams)
+				postParams.Attachments = attachments
+				//But we only care about first attachments
+
+				slack_client.PostMessage(msgevent.Channel, response, postParams)
 
 				return
 

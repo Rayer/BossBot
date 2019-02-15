@@ -8,6 +8,7 @@ import (
 
 type RootScenario struct {
 	ChatBot.DefaultScenarioImpl
+	SlackScenarioImpl
 }
 
 func (rs *RootScenario) InitScenario(uc *ChatBot.UserContext) error {
@@ -36,11 +37,11 @@ func (rs *RootScenario) DisposeScenario() error {
 //The only state of the root scenario
 type EntryState struct {
 	ChatBot.DefaultScenarioStateImpl
-	keywordHandler *KeywordHandler
+	SlackScenarioStateImpl
 }
 
 func (es *EntryState) InitScenarioState(scenario ChatBot.Scenario) {
-	es.keywordHandler = NewKeywordHandler(scenario, es)
+	es.SlackScenarioStateImpl = *NewSlackScenarioStateImpl(es)
 	es.keywordHandler.RegisterKeyword(&Keyword{
 		Keyword: "submit report",
 		Action: func(keyword string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) string {
@@ -59,7 +60,6 @@ func (es *EntryState) InitScenarioState(scenario ChatBot.Scenario) {
 }
 
 func (es *EntryState) RenderMessage() (string, error) {
-
 	return "Hey it's BossBot! Are you going to [submit report], [manage broadcasts] or [check]?", nil
 }
 
@@ -80,7 +80,7 @@ type SecondState struct {
 }
 
 func (ss *SecondState) InitScenarioState(scenario ChatBot.Scenario) {
-	panic("implement me")
+	//panic("implement me")
 }
 
 func (ss *SecondState) RenderMessage() (string, error) {
