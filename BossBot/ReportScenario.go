@@ -53,6 +53,10 @@ type ReportEntryState struct {
 	ChatBot.DefaultScenarioStateImpl
 }
 
+func (res *ReportEntryState) InitScenarioState(scenario ChatBot.Scenario) {
+	panic("implement me")
+}
+
 func (res *ReportEntryState) RenderMessage() (string, error) {
 	/*
 		Designed functionality :
@@ -111,6 +115,10 @@ type ReportCreatingDone struct {
 	ChatBot.DefaultScenarioStateImpl
 }
 
+func (rcd *ReportCreatingDone) InitScenarioState(scenario ChatBot.Scenario) {
+	panic("implement me")
+}
+
 func (rcd *ReportCreatingDone) RenderMessage() (string, error) {
 	return "What task have been done in this week? or there is [good for now]?", nil
 }
@@ -131,6 +139,10 @@ type ReportCreatingInDev struct {
 	ChatBot.DefaultScenarioStateImpl
 }
 
+func (rcid *ReportCreatingInDev) InitScenarioState(scenario ChatBot.Scenario) {
+	panic("implement me")
+}
+
 func (rcid *ReportCreatingInDev) RenderMessage() (string, error) {
 	return "What task is in dev this week? or it's [good for now]?", nil
 }
@@ -149,6 +161,10 @@ func (rcid *ReportCreatingInDev) HandleMessage(input string) (string, error) {
 
 type ReportConfirm struct {
 	ChatBot.DefaultScenarioStateImpl
+}
+
+func (rc *ReportConfirm) InitScenarioState(scenario ChatBot.Scenario) {
+	panic("implement me")
 }
 
 func (rc *ReportConfirm) RenderMessage() (string, error) {

@@ -39,6 +39,7 @@ func (dsi *DefaultScenarioImpl) ChangeStateByName(name string) error {
 
 func (dsi *DefaultScenarioImpl) RegisterState(name string, state ScenarioState, parentScenario Scenario) {
 	state.SetParentScenario(parentScenario)
+	state.InitScenarioState(parentScenario)
 	dsi.stateList[name] = state
 	if dsi.currentState == nil {
 		dsi.currentState = state

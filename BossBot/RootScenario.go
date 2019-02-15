@@ -36,6 +36,26 @@ func (rs *RootScenario) DisposeScenario() error {
 //The only state of the root scenario
 type EntryState struct {
 	ChatBot.DefaultScenarioStateImpl
+	keywordHandler *KeywordHandler
+}
+
+func (es *EntryState) InitScenarioState(scenario ChatBot.Scenario) {
+	es.keywordHandler = NewKeywordHandler(scenario, es)
+	es.keywordHandler.RegisterKeyword(&Keyword{
+		Keyword: "submit report",
+		Action: func(keyword string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) string {
+			scenario.GetUserContext().InvokeNextScenario(&ReportScenario{}, ChatBot.Stack)
+			return "Go to report scenario"
+		},
+	})
+
+	es.keywordHandler.RegisterKeyword(&Keyword{
+		Keyword: "manage broadcasts",
+		Action: func(keyword string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) string {
+			scenario.ChangeStateByName("second")
+			return "Exit with 2"
+		},
+	})
 }
 
 func (es *EntryState) RenderMessage() (string, error) {
@@ -57,6 +77,10 @@ func (es *EntryState) HandleMessage(input string) (string, error) {
 
 type SecondState struct {
 	ChatBot.DefaultScenarioStateImpl
+}
+
+func (ss *SecondState) InitScenarioState(scenario ChatBot.Scenario) {
+	panic("implement me")
 }
 
 func (ss *SecondState) RenderMessage() (string, error) {
