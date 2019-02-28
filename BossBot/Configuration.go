@@ -23,6 +23,7 @@ type Configuration struct {
 }
 
 type ServiceContext struct {
+	conf        *Configuration
 	SlackClient *slack.Client
 	//SlackRTM    *slack.RTM
 	DBObject      *Utilities.DBObject
