@@ -47,17 +47,17 @@ func (es *EntryState) InitScenarioState(scenario ChatBot.Scenario) {
 	es.SlackScenarioStateImpl = *NewSlackScenarioStateImpl(es)
 	es.keywordHandler.RegisterKeyword(&Keyword{
 		Keyword: "submit report",
-		Action: func(keyword string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) string {
+		Action: func(keyword string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) (string, error) {
 			scenario.GetUserContext().InvokeNextScenario(&ReportScenario{}, ChatBot.Stack)
-			return "Go to report scenario"
+			return "Go to report scenario", nil
 		},
 	})
 
 	es.keywordHandler.RegisterKeyword(&Keyword{
 		Keyword: "manage broadcasts",
-		Action: func(keyword string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) string {
+		Action: func(keyword string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) (string, error) {
 			scenario.ChangeStateByName("second")
-			return "Exit with 2"
+			return "Exit with 2", nil
 		},
 	})
 }
@@ -87,9 +87,9 @@ func (ss *SecondState) InitScenarioState(scenario ChatBot.Scenario) {
 	ss.SlackScenarioStateImpl = *NewSlackScenarioStateImpl(ss)
 	ss.KeywordHandler().RegisterKeyword(&Keyword{
 		Keyword: "exit",
-		Action: func(keyword string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) string {
+		Action: func(keyword string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) (string, error) {
 			scenario.ChangeStateByName("entry")
-			return "Exiting..."
+			return "Exiting...", nil
 		},
 	})
 }

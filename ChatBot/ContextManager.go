@@ -45,6 +45,7 @@ func (cm *ContextManager) CreateUserContext(user string, entryScenario func() Sc
 
 func (cm *ContextManager) GetUserContext(user string) *UserContext {
 	uc := cm.contextList[user]
+	log.Debugf("Acception user : %s, current user list : %+v", user, uc)
 	//Purge slice... it's stupid but it seems most maintainable way
 	if uc != nil {
 		log.Debugf("User %s, last session %v seconds ago...", user, time.Now().Sub(uc.LastAccess).Seconds())

@@ -3,6 +3,7 @@ package BossBot
 import (
 	"ChatBot"
 	"github.com/nlopes/slack"
+	"github.com/pkg/errors"
 	"regexp"
 	"strings"
 )
@@ -61,7 +62,7 @@ func NewSlackScenarioStateImpl(state ChatBot.ScenarioState) *SlackScenarioStateI
 	return &SlackScenarioStateImpl{keywordHandler: NewKeywordHandler(state.GetParentScenario(), state)}
 }
 
-type KeywordAction func(keyword string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) string
+type KeywordAction func(keyword string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) (string, error)
 
 type Keyword struct {
 	Keyword string
@@ -93,17 +94,21 @@ func (kh *KeywordHandler) GenerateAttachment(input string) slack.Attachment {
 	var ret slack.Attachment
 	var actions []slack.AttachmentAction
 
+	ret.CallbackID = "chatbot-callback"
+
 	for _, keywordDefine := range kh.keywordList {
 		//TODO: Maybe we should use map to avoid O(n^2)?
 		for _, keyword := range keywords {
 			keyword = strings.Replace(keyword, "[", "", -1)
 			keyword = strings.Replace(keyword, "]", "", -1)
 
-			if keywordDefine.Keyword == keyword {
+			//TODO: Do we need case sensitive?
+			if strings.ToLower(keywordDefine.Keyword) == strings.ToLower(keyword) {
 				actions = append(actions, slack.AttachmentAction{
-					Text: strings.Title(keyword),
-					Name: strings.Title(keyword),
-					Type: "button",
+					Text:  strings.Title(keyword),
+					Name:  strings.Title(keyword),
+					Type:  "button",
+					Value: keyword,
 				})
 				break
 			}
@@ -113,6 +118,15 @@ func (kh *KeywordHandler) GenerateAttachment(input string) slack.Attachment {
 	return ret
 }
 
-func (kh *KeywordHandler) ParseAction(input string) error {
-	return nil
+func (kh *KeywordHandler) ParseAction(input string) (string, error) {
+	for _, kw := range kh.keywordList {
+		if strings.Contains(strings.ToLower(input), strings.ToLower(kw.Keyword)) {
+			ret, err := kw.Action(kw.Keyword, kh.scenario, kh.state)
+			if err != nil {
+				return "", errors.Wrap(err, "Error parsing action : "+kw.Keyword)
+			}
+			return ret, nil
+		}
+	}
+	return "No match keyword", nil
 }

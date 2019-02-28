@@ -34,6 +34,7 @@ func RespServer(conf Configuration) error {
 				log.Errorln("Error handling income interactive message : ", item)
 				log.Errorln("Error is : ", err)
 			}
+			log.Debugf("Incoming /slack/interactive : %+v", r.PostForm["payload"])
 
 			//TODO : Make it const
 			if msgAct.CallbackId == "MsgSchOperation" {
@@ -45,10 +46,17 @@ func RespServer(conf Configuration) error {
 					log.Errorf("Error handling MsgSchOperation, error : %s", err)
 					wm.Text = "Error handling MsgSchOperation!"
 				}
+				ret, _ := json.Marshal(wm)
+				w.Write(ret)
+			}
+			//TODO : Make it const too!
+			if msgAct.CallbackId == "chatbot-callback" {
+				//We only get first action
+				value := msgAct.Actions[0].Value
+				log.Debugf("Trying to response chatbot message with user : %s, value %s", msgAct.User.Id, value)
+				handleChatbotMessage(msgAct.User.Id, value, msgAct.Channel.Id)
 			}
 
-			ret, _ := json.Marshal(wm)
-			w.Write(ret)
 			return
 		}
 
@@ -92,7 +100,7 @@ func RespServer(conf Configuration) error {
 		buf.ReadFrom(r.Body)
 		log.Debugf("Get event message : %s", buf)
 		body := buf.String()
-		eventsAPIEvent, e := slackevents.ParseEvent(json.RawMessage(body), slackevents.OptionVerifyToken(&slackevents.TokenComparator{conf.SlackVerifyToken}))
+		eventsAPIEvent, e := slackevents.ParseEvent(json.RawMessage(body), slackevents.OptionVerifyToken(&slackevents.TokenComparator{VerificationToken: conf.SlackVerifyToken}))
 		log.Debugf("Parse into events api event : %+v", eventsAPIEvent)
 		if e != nil {
 			log.Debugf("Error occured : %s", e)
@@ -116,53 +124,16 @@ func RespServer(conf Configuration) error {
 				slack_client.PostMessage(ev.Channel, "Yes, hello.", postParams)
 			case *slackevents.MessageAction:
 				//Need to render a message while open dm
-
 			case *slackevents.MessageEvent:
 				//Do bot part
 				msgevent := innerEvent.Data.(*slackevents.MessageEvent)
-
 				//Discard message from bot
 				if msgevent.User == "" && msgevent.BotID != "" {
 					return
 				}
-
-				log.Debugf("Got message from user : %s  botid : %s with message : %s", msgevent.User, msgevent.BotID, msgevent.Text)
-
-				//Translate it to name
-				var name string
-				userProfile, err := slack_client.GetUserProfile(msgevent.User, false)
-				if err != nil {
-					log.Warnf("Can't translate slack uid %s to name, use uid instead of name", msgevent.User)
-					log.Warnf("error : %+v", err)
-					name = msgevent.User
-				} else {
-					log.Debugf("Found %s as %s", name, msgevent.User)
-					name = userProfile.DisplayName
-				}
-
-				chatBot := conf.ServiceContext.ChatBotClient
-				userContext := chatBot.GetUserContext(name)
-				if userContext == nil {
-					userContext = chatBot.CreateUserContext(name, func() ChatBot.Scenario {
-						return &RootScenario{}
-					})
-				}
-
-				//handledMessage, _ := userContext.HandleMessage(msgevent.Text)
-				handledMessage, _ := userContext.HandleMessage(msgevent.Text)
-
-				if handledMessage != "" {
-					slack_client.PostMessage(msgevent.Channel, handledMessage, postParams)
-				}
-
-				currentScenario := userContext.GetCurrentScenario()
-				response, attachments, err := currentScenario.(SlackScenario).RenderSlackMessage()
-
-				postParams.Attachments = attachments
-				log.Debugf("PostParams : %+v", postParams)
-
-				slack_client.PostMessage(msgevent.Channel, response, postParams)
-
+				handleChatbotMessageWithMessageEvent(msgevent)
+				//Let's always StatusOK first.
+				w.WriteHeader(http.StatusOK)
 				return
 
 			}
@@ -172,4 +143,49 @@ func RespServer(conf Configuration) error {
 	log.Println("Starting server....")
 	_ = http.ListenAndServe(":5601", nil)
 	return nil
+}
+
+func handleChatbotMessage(user string, text string, channel string) slack.PostMessageParameters {
+
+	slack_client := GetConfiguration().ServiceContext.SlackClient
+	postParams := slack.NewPostMessageParameters()
+
+	//log.Debugf("Got message from user : %s  botid : %s with message : %s", msgevent.User, msgevent.BotID, msgevent.Text)
+	//Translate it to name
+	var name string
+	userProfile, err := slack_client.GetUserProfile(user, false)
+	if err != nil {
+		log.Warnf("Can't translate slack uid %s to name, use uid instead of name", user)
+		log.Warnf("error : %+v", err)
+		name = user
+	} else {
+		log.Debugf("Found %s as %s", name, user)
+		name = userProfile.DisplayName
+	}
+	chatBot := GetConfiguration().ServiceContext.ChatBotClient
+	userContext := chatBot.GetUserContext(name)
+	if userContext == nil {
+		userContext = chatBot.CreateUserContext(name, func() ChatBot.Scenario {
+			return &RootScenario{}
+		})
+	}
+	//handledMessage, _ := userContext.HandleMessage(msgevent.Text)
+	handledMessage, _ := userContext.HandleMessage(text)
+	if handledMessage != "" && channel != "" {
+		slack_client.PostMessage(channel, handledMessage, postParams)
+	}
+	currentScenario := userContext.GetCurrentScenario()
+	response, attachments, err := currentScenario.(SlackScenario).RenderSlackMessage()
+	postParams.Attachments = attachments
+	log.Debugf("PostParams : %+v", postParams)
+	if channel != "" {
+		slack_client.PostMessage(channel, response, postParams)
+	}
+	return postParams
+}
+
+func handleChatbotMessageWithMessageEvent(msgevent *slackevents.MessageEvent) {
+
+	log.Debugf("(handleChatbotMessageWithMessageEvent)Got message from user : %s  botid : %s with message : %s", msgevent.User, msgevent.BotID, msgevent.Text)
+	handleChatbotMessage(msgevent.User, msgevent.Text, msgevent.Channel)
 }

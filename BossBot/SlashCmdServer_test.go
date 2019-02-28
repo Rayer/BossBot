@@ -1,0 +1,5 @@
+package BossBot
+
+func init() {
+
+}
