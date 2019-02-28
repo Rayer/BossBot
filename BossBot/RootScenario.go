@@ -67,15 +67,12 @@ func (es *EntryState) RenderMessage() (string, error) {
 }
 
 func (es *EntryState) HandleMessage(input string) (string, error) {
-	if strings.Contains(input, "submit report") {
-		es.GetParentScenario().GetUserContext().InvokeNextScenario(&ReportScenario{}, ChatBot.Stack)
-		return "Go to report scenario", nil
-	} else if strings.Contains(input, "manage broadcast") {
-		es.GetParentScenario().ChangeStateByName("second")
-		return "Exit with 2", nil
-	}
 
-	return "Nothing done", nil
+	ret, err := es.KeywordHandler().ParseAction(input)
+	if err != nil {
+		return "Error handling message!", err
+	}
+	return ret, nil
 }
 
 type SecondState struct {
