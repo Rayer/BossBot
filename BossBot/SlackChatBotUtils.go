@@ -62,7 +62,7 @@ func NewSlackScenarioStateImpl(state ChatBot.ScenarioState) *SlackScenarioStateI
 	return &SlackScenarioStateImpl{keywordHandler: NewKeywordHandler(state.GetParentScenario(), state)}
 }
 
-type KeywordAction func(keyword string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) (string, error)
+type KeywordAction func(keyword string, input string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) (string, error)
 
 type Keyword struct {
 	Keyword string
@@ -99,6 +99,11 @@ func (kh *KeywordHandler) GenerateAttachment(input string) slack.Attachment {
 	for _, keywordDefine := range kh.keywordList {
 		//TODO: Maybe we should use map to avoid O(n^2)?
 		for _, keyword := range keywords {
+			//Skip default keyword
+			if keyword == "" {
+				continue
+			}
+
 			keyword = strings.Replace(keyword, "[", "", -1)
 			keyword = strings.Replace(keyword, "]", "", -1)
 
@@ -121,12 +126,24 @@ func (kh *KeywordHandler) GenerateAttachment(input string) slack.Attachment {
 func (kh *KeywordHandler) ParseAction(input string) (string, error) {
 	for _, kw := range kh.keywordList {
 		if strings.Contains(strings.ToLower(input), strings.ToLower(kw.Keyword)) {
-			ret, err := kw.Action(kw.Keyword, kh.scenario, kh.state)
+			ret, err := kw.Action(kw.Keyword, input, kh.scenario, kh.state)
 			if err != nil {
 				return "", errors.Wrap(err, "Error parsing action : "+kw.Keyword)
 			}
 			return ret, nil
 		}
 	}
+
+	//if we have default keyword
+	for _, kw := range kh.keywordList {
+		if kw.Keyword == "" {
+			ret, err := kw.Action(kw.Keyword, input, kh.scenario, kh.state)
+			if err != nil {
+				return "", errors.Wrap(err, "Error parsing action : "+kw.Keyword)
+			}
+			return ret, nil
+		}
+	}
+
 	return "No match keyword", nil
 }

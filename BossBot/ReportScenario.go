@@ -6,18 +6,19 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"strings"
 	"time"
 )
 
 type ReportScenario struct {
 	ChatBot.DefaultScenarioImpl
+	SlackScenarioImpl
 	ThisWeekInDev []string
 	ThisWeekDone  []string
 }
 
 func (rs *ReportScenario) InitScenario(uc *ChatBot.UserContext) error {
 	rs.DefaultScenarioImpl.InitScenario(uc)
+	rs.SlackScenarioImpl.InitSlackScenario(rs)
 	rs.RegisterState("entry", &ReportEntryState{}, rs)
 	rs.RegisterState("creating_done", &ReportCreatingDone{}, rs)
 	rs.RegisterState("creating_indev", &ReportCreatingInDev{}, rs)
@@ -51,10 +52,33 @@ States :
 
 type ReportEntryState struct {
 	ChatBot.DefaultScenarioStateImpl
+	SlackScenarioStateImpl
 }
 
 func (res *ReportEntryState) InitScenarioState(scenario ChatBot.Scenario) {
-	panic("implement me")
+	res.SlackScenarioStateImpl = *NewSlackScenarioStateImpl(res)
+	res.KeywordHandler().RegisterKeyword(&Keyword{
+		Keyword: "create report",
+		Action: func(keyword string, input string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) (s string, e error) {
+			_ = res.GetParentScenario().ChangeStateByName("creating_done")
+			return "Ok let's creating a report", nil
+		},
+	})
+
+	res.KeywordHandler().RegisterKeyword(&Keyword{
+		Keyword: "view report",
+		Action: func(keyword string, input string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) (s string, e error) {
+			return "Not really implemented in this prototype version... maybe later", nil
+		},
+	})
+
+	res.KeywordHandler().RegisterKeyword(&Keyword{
+		Keyword: "exit",
+		Action: func(keyword string, input string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) (s string, e error) {
+			_ = res.GetParentScenario().GetUserContext().ReturnLastScenario()
+			return "Let's back to previous session", nil
+		},
+	})
 }
 
 func (res *ReportEntryState) RenderMessage() (string, error) {
@@ -98,25 +122,33 @@ func (res *ReportEntryState) RenderMessage() (string, error) {
 }
 
 func (res *ReportEntryState) HandleMessage(input string) (string, error) {
-	if strings.Contains(input, "create report") {
-		_ = res.GetParentScenario().ChangeStateByName("creating_done")
-		return "Ok let's creating a report", nil
-	} else if strings.Contains(input, "view report") {
-		return "Not really implemented in this prototype version... maybe later", nil
-	} else if strings.Contains(input, "exit") {
-		_ = res.GetParentScenario().GetUserContext().ReturnLastScenario()
-		return "Let's back to previous session", nil
-	}
-
-	return "I don't really understand.... can you use another phrase with same meaning?", nil
+	return res.KeywordHandler().ParseAction(input)
 }
 
 type ReportCreatingDone struct {
 	ChatBot.DefaultScenarioStateImpl
+	SlackScenarioStateImpl
 }
 
 func (rcd *ReportCreatingDone) InitScenarioState(scenario ChatBot.Scenario) {
-	panic("implement me")
+	rcd.SlackScenarioStateImpl = *NewSlackScenarioStateImpl(rcd)
+	rcd.KeywordHandler().RegisterKeyword(&Keyword{
+		Keyword: "good for now",
+		Action: func(keyword string, input string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) (s string, e error) {
+			_ = rcd.GetParentScenario().ChangeStateByName("creating_indev")
+			return "Done in done", nil
+		},
+	})
+
+	//Register default action.
+	rcd.KeywordHandler().RegisterKeyword(&Keyword{
+		Keyword: "",
+		Action: func(keyword string, input string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) (s string, e error) {
+			doneList := rcd.GetParentScenario().(*ReportScenario).ThisWeekDone
+			rcd.GetParentScenario().(*ReportScenario).ThisWeekDone = append(doneList, input)
+			return "Recorded (done) : " + input, nil
+		},
+	})
 }
 
 func (rcd *ReportCreatingDone) RenderMessage() (string, error) {
@@ -124,23 +156,32 @@ func (rcd *ReportCreatingDone) RenderMessage() (string, error) {
 }
 
 func (rcd *ReportCreatingDone) HandleMessage(input string) (string, error) {
-	if strings.Contains(input, "good for now") {
-		_ = rcd.GetParentScenario().ChangeStateByName("creating_indev")
-		return "Done in done", nil
-	}
-
-	doneList := rcd.GetParentScenario().(*ReportScenario).ThisWeekDone
-	rcd.GetParentScenario().(*ReportScenario).ThisWeekDone = append(doneList, input)
-
-	return "Recorded (done) : " + input, nil
+	return rcd.KeywordHandler().ParseAction(input)
 }
 
 type ReportCreatingInDev struct {
 	ChatBot.DefaultScenarioStateImpl
+	SlackScenarioStateImpl
 }
 
 func (rcid *ReportCreatingInDev) InitScenarioState(scenario ChatBot.Scenario) {
-	panic("implement me")
+	rcid.SlackScenarioStateImpl = *NewSlackScenarioStateImpl(rcid)
+	rcid.KeywordHandler().RegisterKeyword(&Keyword{
+		Keyword: "good for now",
+		Action: func(keyword string, input string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) (s string, e error) {
+			rcid.GetParentScenario().ChangeStateByName("confirm")
+			return "Done in dev", nil
+		},
+	})
+
+	rcid.KeywordHandler().RegisterKeyword(&Keyword{
+		Keyword: "",
+		Action: func(keyword string, input string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) (s string, e error) {
+			indevList := rcid.GetParentScenario().(*ReportScenario).ThisWeekInDev
+			rcid.GetParentScenario().(*ReportScenario).ThisWeekInDev = append(indevList, input)
+			return "Recorded (On Going): " + input, nil
+		},
+	})
 }
 
 func (rcid *ReportCreatingInDev) RenderMessage() (string, error) {
@@ -148,30 +189,42 @@ func (rcid *ReportCreatingInDev) RenderMessage() (string, error) {
 }
 
 func (rcid *ReportCreatingInDev) HandleMessage(input string) (string, error) {
-	if strings.Contains(input, "good for now") {
-		rcid.GetParentScenario().ChangeStateByName("confirm")
-		return "Done in dev", nil
-	}
-
-	indevList := rcid.GetParentScenario().(*ReportScenario).ThisWeekInDev
-	rcid.GetParentScenario().(*ReportScenario).ThisWeekInDev = append(indevList, input)
-
-	return "Recorded (On Going): " + input, nil
+	return rcid.KeywordHandler().ParseAction(input)
 }
 
 type ReportConfirm struct {
 	ChatBot.DefaultScenarioStateImpl
+	SlackScenarioStateImpl
 }
 
 func (rc *ReportConfirm) InitScenarioState(scenario ChatBot.Scenario) {
-	panic("implement me")
+	rc.SlackScenarioStateImpl = *NewSlackScenarioStateImpl(rc)
+	rc.KeywordHandler().RegisterKeyword(&Keyword{
+		Keyword: "submit",
+		Action: func(keyword string, input string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) (s string, e error) {
+			err := rc.submitResult()
+			if err != nil {
+				log.Errorf("Error : %+v", err)
+				return "Error submitting report!", errors.Wrap(err, "Error submitting report!")
+			}
+			_ = rc.GetParentScenario().GetUserContext().ReturnLastScenario()
+			return "Submitted", nil
+		},
+	})
+	rc.KeywordHandler().RegisterKeyword(&Keyword{
+		Keyword: "discard",
+		Action: func(keyword string, input string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) (s string, e error) {
+			_ = rc.GetParentScenario().GetUserContext().ReturnLastScenario()
+			return "Discarded", nil
+		},
+	})
 }
 
 func (rc *ReportConfirm) RenderMessage() (string, error) {
 	doneList := rc.GetParentScenario().(*ReportScenario).ThisWeekDone
 	indevList := rc.GetParentScenario().(*ReportScenario).ThisWeekInDev
 
-	ret := "Will you [submit] or [discard] follow report entries : "
+	ret := "Will you [submit] or [discard] follow report entries : \n"
 	ret += "Done : \n"
 	for _, done := range doneList {
 		ret += done + "\n"
@@ -187,20 +240,7 @@ func (rc *ReportConfirm) RenderMessage() (string, error) {
 }
 
 func (rc *ReportConfirm) HandleMessage(input string) (string, error) {
-	if strings.Contains(input, "submit") {
-		err := rc.submitResult()
-		if err != nil {
-			log.Errorf("Error : %+v", err)
-			return "Error submitting report!", errors.Wrap(err, "Error submitting report!")
-		}
-		_ = rc.GetParentScenario().GetUserContext().ReturnLastScenario()
-		return "Submitted", nil
-	} else if strings.Contains(input, "discard") {
-		_ = rc.GetParentScenario().GetUserContext().ReturnLastScenario()
-		return "Discarded", nil
-	}
-
-	return "I don't really understand.....", nil
+	return rc.KeywordHandler().ParseAction(input)
 }
 
 func (rc *ReportConfirm) submitResult() error {

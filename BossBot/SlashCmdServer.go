@@ -175,12 +175,25 @@ func handleChatbotMessage(user string, text string, channel string) slack.PostMe
 		slack_client.PostMessage(channel, handledMessage, postParams)
 	}
 	currentScenario := userContext.GetCurrentScenario()
-	response, attachments, err := currentScenario.(SlackScenario).RenderSlackMessage()
-	postParams.Attachments = attachments
-	log.Debugf("PostParams : %+v", postParams)
-	if channel != "" {
+
+	if slackScenario, isSlackScenario := currentScenario.(SlackScenario); isSlackScenario {
+		response, attachments, err := slackScenario.RenderSlackMessage()
+		if err != nil {
+			slack_client.PostMessage(channel, "Error : "+err.Error(), postParams)
+		}
+		postParams.Attachments = attachments
+		log.Debugf("PostParams : %+v", postParams)
+		if channel != "" {
+			slack_client.PostMessage(channel, response, postParams)
+		}
+	} else {
+		response, err := currentScenario.RenderMessage()
+		if err != nil {
+			response = "Error : " + err.Error()
+		}
 		slack_client.PostMessage(channel, response, postParams)
 	}
+
 	return postParams
 }
 
