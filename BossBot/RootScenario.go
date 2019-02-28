@@ -70,7 +70,7 @@ func (es *EntryState) InitScenarioState(scenario ChatBot.Scenario) {
 }
 
 func (es *EntryState) RenderMessage() (string, error) {
-	return "Hey it's BossBot! Are you going to [submit report], [manage broadcasts] or [check]?", nil
+	return "Are you going to [submit report], [manage broadcasts] or [check]?", nil
 }
 
 func (es *EntryState) HandleMessage(input string) (string, error) {
