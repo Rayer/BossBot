@@ -60,6 +60,13 @@ func (es *EntryState) InitScenarioState(scenario ChatBot.Scenario) {
 			return "Exit with 2", nil
 		},
 	})
+
+	es.keywordHandler.RegisterKeyword(&Keyword{
+		Keyword: "",
+		Action: func(keyword string, input string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) (s string, e error) {
+			return "Hey it is BossBot! How can I serve you?", nil
+		},
+	})
 }
 
 func (es *EntryState) RenderMessage() (string, error) {
