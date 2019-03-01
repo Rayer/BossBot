@@ -46,7 +46,7 @@ func (es *EntryState) InitScenarioState(scenario ChatBot.Scenario) {
 	es.name = "EntryState"
 	es.SlackScenarioStateImpl = *NewSlackScenarioStateImpl(es)
 	es.keywordHandler.RegisterKeyword(&Keyword{
-		Keyword: "submit report",
+		Keyword: "manage weekly reports",
 		Action: func(keyword string, input string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) (string, error) {
 			scenario.GetUserContext().InvokeNextScenario(&ReportScenario{}, ChatBot.Stack)
 			return "Go to report scenario", nil
@@ -57,7 +57,7 @@ func (es *EntryState) InitScenarioState(scenario ChatBot.Scenario) {
 		Keyword: "manage broadcasts",
 		Action: func(keyword string, input string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) (string, error) {
 			scenario.ChangeStateByName("second")
-			return "Exit with 2", nil
+			return "Under construction!", nil
 		},
 	})
 
@@ -70,7 +70,7 @@ func (es *EntryState) InitScenarioState(scenario ChatBot.Scenario) {
 }
 
 func (es *EntryState) RenderMessage() (string, error) {
-	return "Are you going to [submit report], [manage broadcasts] or [check]?", nil
+	return "Are you going to [manage weekly reports], [manage broadcasts] or [check]?", nil
 }
 
 func (es *EntryState) HandleMessage(input string) (string, error) {
@@ -99,7 +99,7 @@ func (ss *SecondState) InitScenarioState(scenario ChatBot.Scenario) {
 }
 
 func (ss *SecondState) RenderMessage() (string, error) {
-	return "This is second message, you can only [exit] in order to get out of here", nil
+	return "This page is under construction, you can [exit] to last scene", nil
 }
 
 func (ss *SecondState) HandleMessage(input string) (string, error) {
