@@ -149,6 +149,7 @@ func handleChatbotMessage(user string, text string, channel string) slack.PostMe
 
 	slack_client := GetConfiguration().ServiceContext.SlackClient
 	postParams := slack.NewPostMessageParameters()
+	postParams.Markdown = true
 
 	//log.Debugf("Got message from user : %s  botid : %s with message : %s", msgevent.User, msgevent.BotID, msgevent.Text)
 	//Translate it to name

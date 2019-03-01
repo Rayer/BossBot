@@ -120,6 +120,7 @@ func (kh *KeywordHandler) GenerateAttachment(input string) slack.Attachment {
 		}
 	}
 	ret.Actions = actions
+	//ret.Color = "Red"
 	return ret
 }
 

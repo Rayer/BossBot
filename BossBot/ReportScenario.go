@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"strings"
 	"time"
 )
 
@@ -23,6 +24,7 @@ func (rs *ReportScenario) InitScenario(uc *ChatBot.UserContext) error {
 	rs.RegisterState("creating_done", &ReportCreatingDone{}, rs)
 	rs.RegisterState("creating_indev", &ReportCreatingInDev{}, rs)
 	rs.RegisterState("confirm", &ReportConfirm{}, rs)
+	rs.RegisterState("gather_report", &GatherReport{}, rs)
 	return nil
 }
 
@@ -79,6 +81,14 @@ func (res *ReportEntryState) InitScenarioState(scenario ChatBot.Scenario) {
 			return "Let's back to previous session", nil
 		},
 	})
+
+	res.KeywordHandler().RegisterKeyword(&Keyword{
+		Keyword: "Gather this week reports",
+		Action: func(keyword string, input string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) (s string, e error) {
+			res.GetParentScenario().ChangeStateByName("gather_report")
+			return "Let's gather reports", nil
+		},
+	})
 }
 
 func (res *ReportEntryState) RenderMessage() (string, error) {
@@ -112,10 +122,10 @@ func (res *ReportEntryState) RenderMessage() (string, error) {
 			return "", errors.Wrap(err, "Fail to marshal datatype : WeeklyReportItem")
 		}
 
-		retText = fmt.Sprintf("Hey %s, I see you have report : \nYear %d week %d report --- \nDone : \n%s\nOn Going :\n%s\n Would you like to [create report] or [exit]?", name, weeklyReportItem.Year, weeklyReportItem.WeekOfYear, weeklyReportItem.Done, weeklyReportItem.OnGoing)
+		retText = fmt.Sprintf("Hey %s, I see you have report : \nYear %d week %d report --- \nDone : \n%s\nOn Going :\n%s\n Would you like to [create report], [Gather this week reports] or [exit]?", name, weeklyReportItem.Year, weeklyReportItem.WeekOfYear, weeklyReportItem.Done, weeklyReportItem.OnGoing)
 
 	} else {
-		retText = fmt.Sprintf("Hey %s, we don't see logs this week. Would you like to [create report]? or [view reports] in previous weeks? You also can [exit] if no longer need to operating with logs", name)
+		retText = fmt.Sprintf("Hey %s, we don't see logs this week. Would you like to [create report]? [Gather this week reports] or [view reports] in previous weeks? You also can [exit] if no longer need to operating with logs", name)
 	}
 
 	return retText, nil
@@ -136,7 +146,12 @@ func (rcd *ReportCreatingDone) InitScenarioState(scenario ChatBot.Scenario) {
 		Keyword: "good for now",
 		Action: func(keyword string, input string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) (s string, e error) {
 			_ = rcd.GetParentScenario().ChangeStateByName("creating_indev")
-			return "Done in done", nil
+			doneTasks := "*Tasks done for this week* : \n"
+			for _, task := range rcd.GetParentScenario().(*ReportScenario).ThisWeekDone {
+				doneTasks += " - " + task
+			}
+
+			return doneTasks, nil
 		},
 	})
 
@@ -145,14 +160,19 @@ func (rcd *ReportCreatingDone) InitScenarioState(scenario ChatBot.Scenario) {
 		Keyword: "",
 		Action: func(keyword string, input string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) (s string, e error) {
 			doneList := rcd.GetParentScenario().(*ReportScenario).ThisWeekDone
-			rcd.GetParentScenario().(*ReportScenario).ThisWeekDone = append(doneList, input)
-			return "Recorded (done) : " + input, nil
+			splited := strings.Split(input, "\n")
+			for _, task := range splited {
+				doneList = append(doneList, task+"\n")
+			}
+
+			rcd.GetParentScenario().(*ReportScenario).ThisWeekDone = doneList
+			return "Recorded (done) : \n" + input, nil
 		},
 	})
 }
 
 func (rcd *ReportCreatingDone) RenderMessage() (string, error) {
-	return "What task have been done in this week? or there is [good for now]?", nil
+	return "What task *have been done* in this week? or there is [good for now]?", nil
 }
 
 func (rcd *ReportCreatingDone) HandleMessage(input string) (string, error) {
@@ -170,7 +190,14 @@ func (rcid *ReportCreatingInDev) InitScenarioState(scenario ChatBot.Scenario) {
 		Keyword: "good for now",
 		Action: func(keyword string, input string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) (s string, e error) {
 			rcid.GetParentScenario().ChangeStateByName("confirm")
-			return "Done in dev", nil
+
+			inprogressTasks := "*Tasks in progress for this week* : \n"
+			for _, task := range rcid.GetParentScenario().(*ReportScenario).ThisWeekInDev {
+				inprogressTasks += " - " + task
+			}
+
+			return inprogressTasks, nil
+			//return "Done in dev", nil
 		},
 	})
 
@@ -178,14 +205,18 @@ func (rcid *ReportCreatingInDev) InitScenarioState(scenario ChatBot.Scenario) {
 		Keyword: "",
 		Action: func(keyword string, input string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) (s string, e error) {
 			indevList := rcid.GetParentScenario().(*ReportScenario).ThisWeekInDev
-			rcid.GetParentScenario().(*ReportScenario).ThisWeekInDev = append(indevList, input)
-			return "Recorded (On Going): " + input, nil
+			splited := strings.Split(input, "\n")
+			for _, task := range splited {
+				indevList = append(indevList, task+"\n")
+			}
+			rcid.GetParentScenario().(*ReportScenario).ThisWeekInDev = indevList
+			return "Recorded (In Progress): \n" + input, nil
 		},
 	})
 }
 
 func (rcid *ReportCreatingInDev) RenderMessage() (string, error) {
-	return "What task is in dev this week? or it's [good for now]?", nil
+	return "What task is *in progress* this week? or it's [good for now]?", nil
 }
 
 func (rcid *ReportCreatingInDev) HandleMessage(input string) (string, error) {
@@ -225,12 +256,12 @@ func (rc *ReportConfirm) RenderMessage() (string, error) {
 	indevList := rc.GetParentScenario().(*ReportScenario).ThisWeekInDev
 
 	ret := "Will you [submit] or [discard] follow report entries : \n"
-	ret += "Done : \n"
+	ret += "*Done* : \n"
 	for _, done := range doneList {
 		ret += done + "\n"
 	}
 
-	ret += "In Dev : \n"
+	ret += "*In Progress* : \n"
 	for _, inDev := range indevList {
 		ret += inDev + "\n"
 	}
@@ -273,4 +304,71 @@ func (rc *ReportConfirm) submitResult() error {
 	}
 
 	return nil
+}
+
+type GatherReport struct {
+	ChatBot.DefaultScenarioStateImpl
+	SlackScenarioStateImpl
+}
+
+func (gr *GatherReport) InitScenarioState(scenario ChatBot.Scenario) {
+	gr.SlackScenarioStateImpl = *NewSlackScenarioStateImpl(gr)
+	gr.KeywordHandler().RegisterKeyword(&Keyword{
+		Keyword: "by person",
+		Action: func(keyword string, input string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) (s string, e error) {
+			year, week := time.Now().ISOWeek()
+			reports, err := GetWeeklyReports(year, week)
+			if err != nil {
+				return "Error getting reports!", err
+			}
+
+			var output string
+
+			for _, report := range reports {
+				output += fmt.Sprintf("%s :\n Completed :\n%s\n In Progress : \n%s\n\n------------\n", report.UserSlackId, report.Done, report.OnGoing)
+			}
+
+			return output, nil
+		},
+	})
+
+	gr.KeywordHandler().RegisterKeyword(&Keyword{
+		Keyword: "by progress",
+		Action: func(keyword string, input string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) (s string, e error) {
+			year, week := time.Now().ISOWeek()
+			reports, err := GetWeeklyReports(year, week)
+			if err != nil {
+				return "Error getting reports!", err
+			}
+
+			var completed string
+			var indev string
+			var submittedUser string
+
+			for _, report := range reports {
+				completed += report.Done
+				indev += report.OnGoing
+				submittedUser += report.UserSlackId + " "
+			}
+
+			return fmt.Sprintf("Year : %d Week : %d Weekly Report : \n\nCompleted:\n%s\nIn Progress:\n%s\nSubmitted user : %s\n", year, week, completed, indev, submittedUser), nil
+		},
+	})
+
+	gr.KeywordHandler().RegisterKeyword(&Keyword{
+		Keyword: "exit",
+		Action: func(keyword string, input string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) (s string, e error) {
+			gr.GetParentScenario().ChangeStateByName("entry")
+			return "Return to last scene", nil
+		},
+	})
+
+}
+
+func (gr *GatherReport) RenderMessage() (string, error) {
+	return "Would you gather reports [by person], [by progress] or [exit]?", nil
+}
+
+func (gr *GatherReport) HandleMessage(input string) (string, error) {
+	return gr.KeywordHandler().ParseAction(input)
 }
