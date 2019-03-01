@@ -73,17 +73,9 @@ func (msc *MsgSchedulerController) HandleRequest() (slack.WebhookMessage, error)
 
 	log.Debugf("Incoming cmd bb_broadcast_list")
 
-	dm, err := GetDataManager(&msc.config)
-
 	errMsg := slack.WebhookMessage{}
 
-	if err != nil {
-		log.Errorf("%s : %s", err, "Error getting data manager!")
-		errMsg.Text = "Error getting data manager!"
-		return errMsg, err
-	}
-
-	bdList, err := dm.GetBroadcastList()
+	bdList, err := GetBroadcastList()
 
 	if err != nil {
 		log.Warnf("%s : %s", err, "Error getting Broadcast List")
