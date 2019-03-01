@@ -1,4 +1,4 @@
-package BossBot
+package SlackChatBot
 
 import (
 	"ChatBot"

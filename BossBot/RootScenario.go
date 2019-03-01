@@ -2,6 +2,7 @@ package BossBot
 
 import (
 	"ChatBot"
+	. "SlackChatBot"
 	log "github.com/sirupsen/logrus"
 	"strings"
 )
@@ -45,7 +46,7 @@ type EntryState struct {
 func (es *EntryState) InitScenarioState(scenario ChatBot.Scenario) {
 	es.name = "EntryState"
 	es.SlackScenarioStateImpl = *NewSlackScenarioStateImpl(es)
-	es.keywordHandler.RegisterKeyword(&Keyword{
+	es.KeywordHandler().RegisterKeyword(&Keyword{
 		Keyword: "manage weekly reports",
 		Action: func(keyword string, input string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) (string, error) {
 			scenario.GetUserContext().InvokeNextScenario(&ReportScenario{}, ChatBot.Stack)
@@ -53,7 +54,7 @@ func (es *EntryState) InitScenarioState(scenario ChatBot.Scenario) {
 		},
 	})
 
-	es.keywordHandler.RegisterKeyword(&Keyword{
+	es.KeywordHandler().RegisterKeyword(&Keyword{
 		Keyword: "manage broadcasts",
 		Action: func(keyword string, input string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) (string, error) {
 			scenario.ChangeStateByName("second")
@@ -61,7 +62,7 @@ func (es *EntryState) InitScenarioState(scenario ChatBot.Scenario) {
 		},
 	})
 
-	es.keywordHandler.RegisterKeyword(&Keyword{
+	es.KeywordHandler().RegisterKeyword(&Keyword{
 		Keyword: "",
 		Action: func(keyword string, input string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) (s string, e error) {
 			return "Hey it is BossBot! How can I serve you?", nil
