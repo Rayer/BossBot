@@ -2,6 +2,7 @@ package BossBot
 
 import (
 	"ChatBot"
+	. "SlackChatBot"
 	"Utilities"
 	"fmt"
 	"github.com/pkg/errors"

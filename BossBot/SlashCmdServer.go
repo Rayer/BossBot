@@ -2,6 +2,7 @@ package BossBot
 
 import (
 	"ChatBot"
+	. "SlackChatBot"
 	"bytes"
 	"encoding/json"
 	"github.com/nlopes/slack"
