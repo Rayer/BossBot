@@ -20,11 +20,20 @@ func main() {
 	conf, _ := BossBot.CreateConfigurationFromFile()
 
 	//Setup Logger
-
-	log.SetReportCaller(true)
 	log.SetLevel(log.Level(conf.LogLevel))
-	log.SetOutput(os.Stdout)
-	log.SetFormatter(&CustomFormatter{})
+	log.SetReportCaller(true)
+	if conf.LogFilePath == "" {
+		log.SetOutput(os.Stdout)
+		log.SetFormatter(&CustomFormatter{})
+	} else {
+		f, err := os.OpenFile(conf.LogFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0755)
+		if err != nil {
+			panic("Error opening log file : " + conf.LogFilePath + " and error is : " + err.Error())
+		}
+		log.SetOutput(f)
+		log.SetFormatter(&log.JSONFormatter{})
+	}
+
 	log.Printf("Start BossBot with configuration : %+v\n", *conf)
 	Utilities.ExecuteCode(conf.PIDFilePath, func() {
 
