@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"github.com/nlopes/slack"
 	"github.com/spf13/viper"
+	"reflect"
 )
 
 type Configuration struct {
-	LogLevel          uint32
+	LogLevel          int64
+	LogFilePath       string
 	SqlHost           string
-	SqlPort           uint32
+	SqlPort           int64
 	SqlAcc            string
 	SqlPass           string
 	PIDFilePath       string
@@ -19,7 +21,7 @@ type Configuration struct {
 	SlackBotToken     string
 	SlackVerifyToken  string
 	ServiceContext    ServiceContext
-	ChatBotResetTimer int
+	ChatBotResetTimer int64
 }
 
 type ServiceContext struct {
@@ -56,18 +58,23 @@ func CreateConfigurationFromFile() (*Configuration, error) {
 	viper.SetDefault("PIDFilePath", ".")
 	viper.SetDefault("ChatBotResetTimer", 300)
 
-	//Stupid.... can we do better?
 	conf := &Configuration{}
-	conf.LogLevel = uint32(viper.GetInt32("LogLevel"))
-	conf.PIDFilePath = viper.GetString("PIDFilePath")
-	conf.SqlHost = viper.GetString("SqlHost")
-	conf.SqlPort = uint32(viper.GetInt32("SqlPort"))
-	conf.SqlAcc = viper.GetString("SqlAcc")
-	conf.SqlPass = viper.GetString("SqlPass")
-	conf.SlackAppToken = viper.GetString("SlackAppToken")
-	conf.SlackBotToken = viper.GetString("SlackBotToken")
-	conf.SlackVerifyToken = viper.GetString("SlackVerifyToken")
-	conf.ChatBotResetTimer = viper.GetInt("ChatBotResetTimer")
+	v := reflect.ValueOf(conf).Elem()
+
+	for i, n := 0, v.NumField(); i < n; i++ {
+		fieldName := v.Type().Field(i).Name
+		switch v.Field(i).Kind() {
+		case reflect.String:
+			v.Field(i).SetString(viper.GetString(fieldName))
+		case reflect.Int32:
+			v.Field(i).SetInt(int64(viper.GetInt32(fieldName)))
+		case reflect.Int64:
+			v.Field(i).SetInt(viper.GetInt64(fieldName))
+		case reflect.Struct:
+		default:
+			continue
+		}
+	}
 
 	conf.ServiceContext.SlackClient = slack.New(conf.SlackAppToken)
 	conf.ServiceContext.DBObject, err = Utilities.CreateDBObject(conf.SqlHost, conf.SqlAcc, conf.SqlPass)
