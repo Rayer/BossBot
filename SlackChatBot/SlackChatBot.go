@@ -1,7 +1,7 @@
 package SlackChatBot
 
 import (
-	"ChatBot"
+	"github.com/Rayer/chatbot"
 	"github.com/nlopes/slack"
 	"github.com/pkg/errors"
 	"regexp"
