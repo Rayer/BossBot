@@ -1,10 +1,10 @@
 package BossBot
 
 import (
-	"ChatBot"
 	. "SlackChatBot"
 	"Utilities"
 	"fmt"
+	"github.com/Rayer/chatbot"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"strings"

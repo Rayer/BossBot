@@ -2,7 +2,7 @@ package main
 
 import (
 	"BossBotLib"
-	"ChatBot"
+	"github.com/Rayer/chatbot"
 	"bufio"
 	"fmt"
 	"github.com/sirupsen/logrus"

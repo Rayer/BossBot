@@ -1,8 +1,8 @@
 package BossBot
 
 import (
-	"ChatBot"
 	. "SlackChatBot"
+	"github.com/Rayer/chatbot"
 	log "github.com/sirupsen/logrus"
 	"strings"
 )

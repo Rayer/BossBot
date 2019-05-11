@@ -1,7 +1,7 @@
 package BossBot
 
 import (
-	"ChatBot"
+	"github.com/Rayer/chatbot"
 	. "SlackChatBot"
 	"bytes"
 	"encoding/json"
