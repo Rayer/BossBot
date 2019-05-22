@@ -1,20 +1,16 @@
 package BossBot
 
 import (
-	. "SlackChatBot"
 	"github.com/Rayer/chatbot"
 	log "github.com/sirupsen/logrus"
-	"strings"
 )
 
 type RootScenario struct {
 	ChatBot.DefaultScenarioImpl
-	SlackScenarioImpl
 }
 
 func (rs *RootScenario) InitScenario(uc *ChatBot.UserContext) error {
 	rs.DefaultScenarioImpl.InitScenario(uc)
-	rs.SlackScenarioImpl.InitSlackScenario(rs)
 	rs.RegisterState("entry", &EntryState{}, rs)
 	rs.RegisterState("second", &SecondState{}, rs)
 	return nil
@@ -39,14 +35,13 @@ func (rs *RootScenario) DisposeScenario() error {
 //The only state of the root scenario
 type EntryState struct {
 	ChatBot.DefaultScenarioStateImpl
-	SlackScenarioStateImpl
 	name string
 }
 
 func (es *EntryState) InitScenarioState(scenario ChatBot.Scenario) {
+	es.Init(scenario, es)
 	es.name = "EntryState"
-	es.SlackScenarioStateImpl = *NewSlackScenarioStateImpl(es)
-	es.KeywordHandler().RegisterKeyword(&Keyword{
+	es.KeywordHandler.RegisterKeyword(&ChatBot.Keyword{
 		Keyword: "manage weekly reports",
 		Action: func(keyword string, input string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) (string, error) {
 			scenario.GetUserContext().InvokeNextScenario(&ReportScenario{}, ChatBot.Stack)
@@ -54,7 +49,7 @@ func (es *EntryState) InitScenarioState(scenario ChatBot.Scenario) {
 		},
 	})
 
-	es.KeywordHandler().RegisterKeyword(&Keyword{
+	es.KeywordHandler.RegisterKeyword(&ChatBot.Keyword{
 		Keyword: "manage broadcasts",
 		Action: func(keyword string, input string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) (string, error) {
 			scenario.ChangeStateByName("second")
@@ -62,7 +57,7 @@ func (es *EntryState) InitScenarioState(scenario ChatBot.Scenario) {
 		},
 	})
 
-	es.KeywordHandler().RegisterKeyword(&Keyword{
+	es.KeywordHandler.RegisterKeyword(&ChatBot.Keyword{
 		Keyword: "",
 		Action: func(keyword string, input string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) (s string, e error) {
 			return "Hey it is BossBot! How can I serve you?", nil
@@ -70,27 +65,17 @@ func (es *EntryState) InitScenarioState(scenario ChatBot.Scenario) {
 	})
 }
 
-func (es *EntryState) RenderMessage() (string, error) {
+func (es *EntryState) RawMessage() (string, error) {
 	return "Are you going to [manage weekly reports], [manage broadcasts] or [check]?", nil
-}
-
-func (es *EntryState) HandleMessage(input string) (string, error) {
-
-	ret, err := es.KeywordHandler().ParseAction(input)
-	if err != nil {
-		return "Error handling message!", err
-	}
-	return ret, nil
 }
 
 type SecondState struct {
 	ChatBot.DefaultScenarioStateImpl
-	SlackScenarioStateImpl
 }
 
 func (ss *SecondState) InitScenarioState(scenario ChatBot.Scenario) {
-	ss.SlackScenarioStateImpl = *NewSlackScenarioStateImpl(ss)
-	ss.KeywordHandler().RegisterKeyword(&Keyword{
+	ss.Init(scenario, ss)
+	ss.KeywordHandler.RegisterKeyword(&ChatBot.Keyword{
 		Keyword: "exit",
 		Action: func(keyword string, input string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) (string, error) {
 			scenario.ChangeStateByName("entry")
@@ -99,17 +84,10 @@ func (ss *SecondState) InitScenarioState(scenario ChatBot.Scenario) {
 	})
 }
 
-func (ss *SecondState) RenderMessage() (string, error) {
+func (ss *SecondState) RawMessage() (string, error) {
 	return "This page is under construction, you can [exit] to last scene", nil
 }
 
-func (ss *SecondState) HandleMessage(input string) (string, error) {
-	if strings.Contains(input, "exit") {
-		ss.GetParentScenario().ChangeStateByName("entry")
-		return "Exiting...", nil
-	}
-	return "Not exit, stay here.", nil
-}
 
 func (rs *RootScenario) Name() string {
 	return "RootScenario"

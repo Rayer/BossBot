@@ -1,10 +1,9 @@
 package BossBot
 
 import (
-	"github.com/Rayer/chatbot"
-	. "SlackChatBot"
 	"bytes"
 	"encoding/json"
+	"github.com/Rayer/chatbot"
 	"github.com/nlopes/slack"
 	"github.com/nlopes/slack/slackevents"
 	log "github.com/sirupsen/logrus"
@@ -178,25 +177,33 @@ func handleChatbotMessage(user string, text string, channel string) slack.PostMe
 	}
 	currentScenario := userContext.GetCurrentScenario()
 
-	if slackScenario, isSlackScenario := currentScenario.(SlackScenario); isSlackScenario {
-		response, attachments, err := slackScenario.RenderSlackMessage()
-		if err != nil {
-			slack_client.PostMessage(channel, "Error : "+err.Error(), postParams)
-		}
-		postParams.Attachments = attachments
-		log.Debugf("PostParams : %+v", postParams)
-		if channel != "" {
-			slack_client.PostMessage(channel, response, postParams)
-		}
-	} else {
-		response, err := currentScenario.RenderMessage()
-		if err != nil {
-			response = "Error : " + err.Error()
-		}
-		slack_client.PostMessage(channel, response, postParams)
-	}
+	transformedOutput, validKeywordList, invalidKeywordList, err := currentScenario.RenderMessageWithDetail()
+
+
+
+	//if slackScenario, isSlackScenario := currentScenario.(SlackScenario); isSlackScenario {
+	//	response, attachments, err := slackScenario.RenderSlackMessage()
+	//	if err != nil {
+	//		slack_client.PostMessage(channel, "Error : "+err.Error(), postParams)
+	//	}
+	//	postParams.Attachments = attachments
+	//	log.Debugf("PostParams : %+v", postParams)
+	//	if channel != "" {
+	//		slack_client.PostMessage(channel, response, postParams)
+	//	}
+	//} else {
+	//	response, err := currentScenario.RenderMessage()
+	//	if err != nil {
+	//		response = "Error : " + err.Error()
+	//	}
+	//	slack_client.PostMessage(channel, response, postParams)
+	//}
 
 	return postParams
+}
+
+func generateSlackAttachment(output string, validKeywordList []string, invalidKeywordList []string) []slack.Attachment {
+
 }
 
 func handleChatbotMessageWithMessageEvent(msgevent *slackevents.MessageEvent) {
