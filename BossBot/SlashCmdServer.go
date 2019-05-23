@@ -8,6 +8,7 @@ import (
 	"github.com/nlopes/slack/slackevents"
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	"strings"
 )
 
 type MsgScheduleIdActions struct {
@@ -131,7 +132,10 @@ func RespServer(conf Configuration) error {
 				if msgevent.User == "" && msgevent.BotID != "" {
 					return
 				}
-				handleChatbotMessageWithMessageEvent(msgevent)
+
+				//TODO: Simplify
+
+				slack_client.PostMessage(msgevent.Channel, msgevent.Text, handleChatbotMessage(msgevent.User, msgevent.Text, msgevent.Channel))
 				//Let's always StatusOK first.
 				w.WriteHeader(http.StatusOK)
 				return
@@ -163,10 +167,10 @@ func handleChatbotMessage(user string, text string, channel string) slack.PostMe
 		log.Debugf("Found %s as %s", name, user)
 		name = userProfile.DisplayName
 	}
-	chatBot := GetConfiguration().ServiceContext.ChatBotClient
-	userContext := chatBot.GetUserContext(name)
+	cb := GetConfiguration().ServiceContext.ChatBotClient
+	userContext := cb.GetUserContext(name)
 	if userContext == nil {
-		userContext = chatBot.CreateUserContext(name, func() ChatBot.Scenario {
+		userContext = cb.CreateUserContext(name, func() ChatBot.Scenario {
 			return &RootScenario{}
 		})
 	}
@@ -178,6 +182,11 @@ func handleChatbotMessage(user string, text string, channel string) slack.PostMe
 	currentScenario := userContext.GetCurrentScenario()
 
 	transformedOutput, validKeywordList, invalidKeywordList, err := currentScenario.RenderMessageWithDetail()
+	attachment := generateSlackAttachment(transformedOutput, validKeywordList, invalidKeywordList)
+	postParams.Attachments = append(postParams.Attachments, attachment)
+
+
+	//create
 
 
 
@@ -202,12 +211,29 @@ func handleChatbotMessage(user string, text string, channel string) slack.PostMe
 	return postParams
 }
 
-func generateSlackAttachment(output string, validKeywordList []string, invalidKeywordList []string) []slack.Attachment {
+func generateSlackAttachment(output string, validKeywordList []string, invalidKeywordList []string) slack.Attachment {
+	var ret slack.Attachment
+	var actions []slack.AttachmentAction
 
+	ret.CallbackID = "chatbot-callback"
+
+	for _, keyword := range validKeywordList {
+
+		actions = append(actions, slack.AttachmentAction{
+			Text:  strings.Title(keyword),
+			Name:  strings.Title(keyword),
+			Type:  "button",
+			Value: keyword,
+		})
+	}
+
+	ret.Actions = actions
+	//ret.Color = "Red"
+	return ret
 }
 
-func handleChatbotMessageWithMessageEvent(msgevent *slackevents.MessageEvent) {
-
-	log.Debugf("(handleChatbotMessageWithMessageEvent)Got message from user : %s  botid : %s with message : %s", msgevent.User, msgevent.BotID, msgevent.Text)
-	handleChatbotMessage(msgevent.User, msgevent.Text, msgevent.Channel)
-}
+//func handleChatbotMessageWithMessageEvent(msgevent *slackevents.MessageEvent) {
+//
+//	log.Debugf("(handleChatbotMessageWithMessageEvent)Got message from user : %s  botid : %s with message : %s", msgevent.User, msgevent.BotID, msgevent.Text)
+//	handleChatbotMessage(msgevent.User, msgevent.Text, msgevent.Channel)
+//}
