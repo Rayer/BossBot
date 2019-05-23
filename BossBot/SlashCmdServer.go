@@ -1,14 +1,14 @@
 package BossBot
 
 import (
-	"github.com/Rayer/chatbot"
-	. "SlackChatBot"
 	"bytes"
 	"encoding/json"
+	"github.com/Rayer/chatbot"
 	"github.com/nlopes/slack"
 	"github.com/nlopes/slack/slackevents"
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	"strings"
 )
 
 type MsgScheduleIdActions struct {
@@ -18,7 +18,7 @@ type MsgScheduleIdActions struct {
 
 func RespServer(conf Configuration) error {
 
-	slack_client := conf.ServiceContext.SlackClient
+	slackClient := conf.ServiceContext.SlackClient
 	//slack_rtm := conf.ServiceContext.SlackRTM
 	http.HandleFunc("/slack/interactive", func(w http.ResponseWriter, r *http.Request) {
 		err := r.ParseForm()
@@ -122,7 +122,7 @@ func RespServer(conf Configuration) error {
 			innerEvent := eventsAPIEvent.InnerEvent
 			switch ev := innerEvent.Data.(type) {
 			case *slackevents.AppMentionEvent:
-				slack_client.PostMessage(ev.Channel, "Yes, hello.", postParams)
+				slackClient.PostMessage(ev.Channel, "Yes, hello.", postParams)
 			case *slackevents.MessageAction:
 				//Need to render a message while open dm
 			case *slackevents.MessageEvent:
@@ -132,7 +132,10 @@ func RespServer(conf Configuration) error {
 				if msgevent.User == "" && msgevent.BotID != "" {
 					return
 				}
-				handleChatbotMessageWithMessageEvent(msgevent)
+
+				log.Infof("Handling chatbot incoming event : %+v", msgevent)
+
+				handleChatbotMessage(msgevent.User, msgevent.Text, msgevent.Channel)
 				//Let's always StatusOK first.
 				w.WriteHeader(http.StatusOK)
 				return
@@ -164,39 +167,63 @@ func handleChatbotMessage(user string, text string, channel string) slack.PostMe
 		log.Debugf("Found %s as %s", name, user)
 		name = userProfile.DisplayName
 	}
-	chatBot := GetConfiguration().ServiceContext.ChatBotClient
-	userContext := chatBot.GetUserContext(name)
+	cb := GetConfiguration().ServiceContext.ChatBotClient
+	userContext := cb.GetUserContext(name)
 	if userContext == nil {
-		userContext = chatBot.CreateUserContext(name, func() ChatBot.Scenario {
+		userContext = cb.CreateUserContext(name, func() ChatBot.Scenario {
 			return &RootScenario{}
 		})
 	}
 	//handledMessage, _ := userContext.HandleMessage(msgevent.Text)
 	handledMessage, _ := userContext.HandleMessage(text)
+
+	log.Infof("Channel = %s, HandledMessage = %s")
+
 	if handledMessage != "" && channel != "" {
 		slack_client.PostMessage(channel, handledMessage, postParams)
 	}
 	currentScenario := userContext.GetCurrentScenario()
 
-	if slackScenario, isSlackScenario := currentScenario.(SlackScenario); isSlackScenario {
-		response, attachments, err := slackScenario.RenderSlackMessage()
-		if err != nil {
-			slack_client.PostMessage(channel, "Error : "+err.Error(), postParams)
-		}
-		postParams.Attachments = attachments
-		log.Debugf("PostParams : %+v", postParams)
-		if channel != "" {
-			slack_client.PostMessage(channel, response, postParams)
-		}
-	} else {
-		response, err := currentScenario.RenderMessage()
-		if err != nil {
-			response = "Error : " + err.Error()
-		}
+	transformedOutput, validKeywordList, invalidKeywordList, err := currentScenario.RenderMessageWithDetail()
+	attachment := generateSlackAttachment(transformedOutput, validKeywordList, invalidKeywordList)
+
+	//create
+
+	//response, attachments, err := slackScenario.RenderSlackMessage()
+	response := transformedOutput
+
+	if err != nil {
+		slack_client.PostMessage(channel, "Error : "+err.Error(), postParams)
+	}
+	postParams.Attachments = append(postParams.Attachments, attachment)
+	log.Debugf("PostParams : %+v", postParams)
+	if channel != "" {
 		slack_client.PostMessage(channel, response, postParams)
 	}
 
+
 	return postParams
+}
+
+func generateSlackAttachment(output string, validKeywordList []string, invalidKeywordList []string) slack.Attachment {
+	var ret slack.Attachment
+	var actions []slack.AttachmentAction
+
+	ret.CallbackID = "chatbot-callback"
+
+	for _, keyword := range validKeywordList {
+
+		actions = append(actions, slack.AttachmentAction{
+			Text:  strings.Title(keyword),
+			Name:  strings.Title(keyword),
+			Type:  "button",
+			Value: keyword,
+		})
+	}
+
+	ret.Actions = actions
+	//ret.Color = "Red"
+	return ret
 }
 
 func handleChatbotMessageWithMessageEvent(msgevent *slackevents.MessageEvent) {
