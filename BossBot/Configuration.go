@@ -45,6 +45,10 @@ func GetConfiguration() *Configuration {
 	return globalConfig
 }
 
+func KeywordTransformer(fullText string, keyword string, isValid bool) string {
+	return "[" + keyword + "]"
+}
+
 //TODO: Error will always be NOT nil, need to improve it?
 func CreateConfigurationFromFile() (*Configuration, error) {
 	viper.SetConfigName("BossBot")
@@ -81,7 +85,12 @@ func CreateConfigurationFromFile() (*Configuration, error) {
 	if err != nil {
 		panic(fmt.Errorf("error creating DB object! Please check sql credential and address! (%s)", err))
 	}
-	conf.ServiceContext.ChatBotClient = ChatBot.NewContextManager()
+
+	chatConfig := ChatBot.Configuration{
+		ResetTimerSec:300,
+		KeywordFormatter:KeywordTransformer,
+	}
+	conf.ServiceContext.ChatBotClient = ChatBot.NewContextManagerWithConfig(&chatConfig)
 	//rtm := conf.ServiceContext.SlackClient.NewRTM()
 	//go rtm.ManageConnection()
 

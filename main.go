@@ -28,10 +28,14 @@ func main() {
 	} else {
 		f, err := os.OpenFile(conf.LogFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0755)
 		if err != nil {
-			panic("Error opening log file : " + conf.LogFilePath + " and error is : " + err.Error())
+			log.Warn("Error opening log file : " + conf.LogFilePath + " and error is : " + err.Error())
+			log.Warn("Log to logfile failed, now log to stdout instead")
+		} else {
+			log.Infof("Now logging to : %s", f.Name())
+			log.SetOutput(f)
+			log.SetFormatter(&log.JSONFormatter{})
 		}
-		log.SetOutput(f)
-		log.SetFormatter(&log.JSONFormatter{})
+
 	}
 
 	log.Printf("Start BossBot with configuration : %+v\n", *conf)
