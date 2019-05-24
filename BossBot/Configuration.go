@@ -1,9 +1,9 @@
 package BossBot
 
 import (
-	"github.com/Rayer/chatbot"
 	"Utilities"
 	"fmt"
+	"github.com/Rayer/chatbot"
 	"github.com/nlopes/slack"
 	"github.com/spf13/viper"
 	"reflect"
@@ -45,6 +45,7 @@ func GetConfiguration() *Configuration {
 	return globalConfig
 }
 
+//noinspection GoUnusedParameter,GoUnusedParameter
 func KeywordTransformer(fullText string, keyword string, isValid bool) string {
 	return "[" + keyword + "]"
 }
@@ -87,8 +88,8 @@ func CreateConfigurationFromFile() (*Configuration, error) {
 	}
 
 	chatConfig := ChatBot.Configuration{
-		ResetTimerSec:300,
-		KeywordFormatter:KeywordTransformer,
+		ResetTimerSec:    300,
+		KeywordFormatter: KeywordTransformer,
 	}
 	conf.ServiceContext.ChatBotClient = ChatBot.NewContextManagerWithConfig(&chatConfig)
 	//rtm := conf.ServiceContext.SlackClient.NewRTM()

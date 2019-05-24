@@ -88,7 +88,6 @@ func (ss *SecondState) RawMessage() (string, error) {
 	return "This page is under construction, you can [exit] to last scene", nil
 }
 
-
 func (rs *RootScenario) Name() string {
 	return "RootScenario"
 }

@@ -133,8 +133,8 @@ type ReportCreatingDone struct {
 }
 
 func (rcd *ReportCreatingDone) InitScenarioState(scenario ChatBot.Scenario) {
-		rcd.Init(scenario, rcd)
-		rcd.KeywordHandler.RegisterKeyword(&ChatBot.Keyword{
+	rcd.Init(scenario, rcd)
+	rcd.KeywordHandler.RegisterKeyword(&ChatBot.Keyword{
 		Keyword: "good for now",
 		Action: func(keyword string, input string, scenario ChatBot.Scenario, state ChatBot.ScenarioState) (s string, e error) {
 			_ = rcd.GetParentScenario().ChangeStateByName("creating_indev")
@@ -166,7 +166,6 @@ func (rcd *ReportCreatingDone) InitScenarioState(scenario ChatBot.Scenario) {
 func (rcd *ReportCreatingDone) RawMessage() (string, error) {
 	return "What task *have been done* in this week? or there is [good for now]?", nil
 }
-
 
 type ReportCreatingInDev struct {
 	ChatBot.DefaultScenarioStateImpl
@@ -206,7 +205,6 @@ func (rcid *ReportCreatingInDev) InitScenarioState(scenario ChatBot.Scenario) {
 func (rcid *ReportCreatingInDev) RawMessage() (string, error) {
 	return "What task is *in progress* this week? or it's [good for now]?", nil
 }
-
 
 type ReportConfirm struct {
 	ChatBot.DefaultScenarioStateImpl

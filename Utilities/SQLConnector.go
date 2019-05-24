@@ -9,11 +9,11 @@ import (
 )
 
 type DBObject struct {
-	Host        string
-	User        string
-	Passwd      string
-	conn_string string
-	conn        *sql.DB
+	Host       string
+	User       string
+	Passwd     string
+	connString string
+	conn       *sql.DB
 }
 
 func CreateDBObject(host string, user string, passwd string) (*DBObject, error) {
@@ -23,18 +23,18 @@ func CreateDBObject(host string, user string, passwd string) (*DBObject, error) 
 		Passwd: passwd,
 	}
 
-	ret.conn_string = fmt.Sprintf("%s:%s@tcp(%s)/apps?charset=utf8&loc=Asia%%2FTaipei&parseTime=true", user, passwd, host)
+	ret.connString = fmt.Sprintf("%s:%s@tcp(%s)/apps?charset=utf8&loc=Asia%%2FTaipei&parseTime=true", user, passwd, host)
 
-	db, err := sql.Open("mysql", ret.conn_string)
-	log.Debugf("Attempting logging in with Server String : %s", ret.conn_string)
+	db, err := sql.Open("mysql", ret.connString)
+	log.Debugf("Attempting logging in with Server String : %s", ret.connString)
 	if err != nil {
-		wrapped := errors.Wrap(err, "Error while initialization with sql string : "+ret.conn_string)
+		wrapped := errors.Wrap(err, "Error while initialization with sql string : "+ret.connString)
 		return nil, wrapped
 	}
-	log.Debugf("Attempting pinging : %s", ret.conn_string)
+	log.Debugf("Attempting pinging : %s", ret.connString)
 	err = db.Ping()
 	if err != nil {
-		return nil, errors.Wrap(err, "Fail to ping server : "+ret.conn_string)
+		return nil, errors.Wrap(err, "Fail to ping server : "+ret.connString)
 	}
 
 	ret.conn = db

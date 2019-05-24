@@ -64,12 +64,12 @@ func tryBroadcast(broadcastItem Utilities.RowResult, conn *sql.DB) (int, error) 
 	//log.Println("Using local time : " + currentTime.String())
 	y, m, d := currentTime.Date()
 	broadcast := fmt.Sprintf("%d %s %d %s +0800 CST", y, m.String()[0:3], d, string(broadcastItem["broadcast_time"].([]byte)))
-	broadcast_time, err := time.Parse("2006 Jan _2 15:04:05 -0700 MST", broadcast)
+	broadcastTime, err := time.Parse("2006 Jan _2 15:04:05 -0700 MST", broadcast)
 	if err != nil {
 		return 0, errors.Wrap(err, "Error parsing time")
 	}
 	//log.Println("Broadcast time : " + broadcast_time.String())
-	if broadcast_time.After(currentTime) {
+	if broadcastTime.After(currentTime) {
 		return 0, nil
 	}
 
@@ -126,15 +126,15 @@ func tryBroadcast(broadcastItem Utilities.RowResult, conn *sql.DB) (int, error) 
 	}
 
 	id := getContextAsString(broadcastItem, "id")
-	last_run_sql := fmt.Sprintf("update bb_broadcast_schedule set last_run = CONVERT_TZ(Now(), '+00:00', '+08:00') where id = %s;", id)
-	_, err = conn.Exec(last_run_sql)
+	lastRunSql := fmt.Sprintf("update bb_broadcast_schedule set last_run = CONVERT_TZ(Now(), '+00:00', '+08:00') where id = %s;", id)
+	_, err = conn.Exec(lastRunSql)
 	if err != nil {
 		return 1, errors.Wrap(err, "Message is sent but fail to update last_run in bb_broadcast_schedule!")
 	}
 
 	id = getContextAsString(broadcastItem, "message_id")
-	last_run_sql = fmt.Sprintf("update bb_broadcast_msg set last_broadcast = CONVERT_TZ(Now(), '+00:00', '+08:00'), broadcast_count = if(broadcast_count is null, 1, broadcast_count + 1) where id = %s;", id)
-	_, err = conn.Exec(last_run_sql)
+	lastRunSql = fmt.Sprintf("update bb_broadcast_msg set last_broadcast = CONVERT_TZ(Now(), '+00:00', '+08:00'), broadcast_count = if(broadcast_count is null, 1, broadcast_count + 1) where id = %s;", id)
+	_, err = conn.Exec(lastRunSql)
 	if err != nil {
 		return 1, errors.Wrap(err, "Message is sent but fail to update last_run in bb_broadcast_msg!")
 	}
@@ -155,14 +155,14 @@ func (mb *MessageBroadcaster) InvokeBroadcast(id int) (int, error) {
 		return 0, errors.Wrap(err, "Error invoke broadcast!")
 	}
 
-	type ib_item struct {
+	type ibItem struct {
 		Id        int    `bb_data:"id"`
 		Message   string `bb_data:"message"`
 		Webhook   string `bb_data:"webhook"`
 		MessageId int    `bb_data:"message_id"`
 	}
 
-	ib := ib_item{}
+	ib := ibItem{}
 	res.Next()
 	err = Utilities.RowsToStruct("bb_data", res, &ib)
 	if err != nil {

@@ -151,14 +151,14 @@ func RespServer(conf Configuration) error {
 
 func handleChatbotMessage(user string, text string, channel string) slack.PostMessageParameters {
 
-	slack_client := GetConfiguration().ServiceContext.SlackClient
+	slackClient := GetConfiguration().ServiceContext.SlackClient
 	postParams := slack.NewPostMessageParameters()
 	postParams.Markdown = true
 
 	//log.Debugf("Got message from user : %s  botid : %s with message : %s", msgevent.User, msgevent.BotID, msgevent.Text)
 	//Translate it to name
 	var name string
-	userProfile, err := slack_client.GetUserProfile(user, false)
+	userProfile, err := slackClient.GetUserProfile(user, false)
 	if err != nil {
 		log.Warnf("Can't translate slack uid %s to name, use uid instead of name", user)
 		log.Warnf("error : %+v", err)
@@ -177,10 +177,8 @@ func handleChatbotMessage(user string, text string, channel string) slack.PostMe
 	//handledMessage, _ := userContext.HandleMessage(msgevent.Text)
 	handledMessage, _ := userContext.HandleMessage(text)
 
-	log.Infof("Channel = %s, HandledMessage = %s")
-
 	if handledMessage != "" && channel != "" {
-		slack_client.PostMessage(channel, handledMessage, postParams)
+		slackClient.PostMessage(channel, handledMessage, postParams)
 	}
 	currentScenario := userContext.GetCurrentScenario()
 
@@ -193,14 +191,13 @@ func handleChatbotMessage(user string, text string, channel string) slack.PostMe
 	response := transformedOutput
 
 	if err != nil {
-		slack_client.PostMessage(channel, "Error : "+err.Error(), postParams)
+		slackClient.PostMessage(channel, "Error : "+err.Error(), postParams)
 	}
 	postParams.Attachments = append(postParams.Attachments, attachment)
 	log.Debugf("PostParams : %+v", postParams)
 	if channel != "" {
-		slack_client.PostMessage(channel, response, postParams)
+		slackClient.PostMessage(channel, response, postParams)
 	}
-
 
 	return postParams
 }
@@ -226,8 +223,3 @@ func generateSlackAttachment(output string, validKeywordList []string, invalidKe
 	return ret
 }
 
-func handleChatbotMessageWithMessageEvent(msgevent *slackevents.MessageEvent) {
-
-	log.Debugf("(handleChatbotMessageWithMessageEvent)Got message from user : %s  botid : %s with message : %s", msgevent.User, msgevent.BotID, msgevent.Text)
-	handleChatbotMessage(msgevent.User, msgevent.Text, msgevent.Channel)
-}
