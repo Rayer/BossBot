@@ -208,12 +208,21 @@ func generateSlackAttachment(output string, validKeywordList []string, invalidKe
 
 	ret.CallbackID = "chatbot-callback"
 
-	for _, keyword := range validKeywordList {
+	//First one is default, then primary
+	for i, keyword := range validKeywordList {
+
+		var style string
+		if i == 0 {
+			style = "primary"
+		} else {
+			style = "default"
+		}
 
 		actions = append(actions, slack.AttachmentAction{
 			Text:  strings.Title(keyword),
 			Name:  strings.Title(keyword),
 			Type:  "button",
+			Style: style,
 			Value: keyword,
 		})
 	}
