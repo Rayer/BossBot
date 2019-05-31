@@ -38,7 +38,7 @@ func RespServer(conf Configuration) error {
 			log.Debugf("Incoming /slack/interactive : %+v", r.PostForm["payload"])
 
 			//TODO : Make it const
-			if msgAct.CallbackId == "MsgSchOperation" {
+			if msgAct.CallbackID == "MsgSchOperation" {
 				//Handler of MsgSchOperation
 				//Get action and schedule ID. Usually, there should be only 1 action
 				controller := MsgSchedulerController{conf}
@@ -51,11 +51,11 @@ func RespServer(conf Configuration) error {
 				w.Write(ret)
 			}
 			//TODO : Make it const too!
-			if msgAct.CallbackId == "chatbot-callback" {
+			if msgAct.CallbackID == "chatbot-callback" {
 				//We only get first action
 				value := msgAct.Actions[0].Value
-				log.Debugf("Trying to response chatbot message with user : %s, value %s", msgAct.User.Id, value)
-				handleChatbotMessage(msgAct.User.Id, value, msgAct.Channel.Id)
+				log.Debugf("Trying to response chatbot message with user : %s, value %s", msgAct.User.ID, value)
+				handleChatbotMessage(msgAct.User.ID, value, msgAct.Channel.ID)
 			}
 
 			return
@@ -118,11 +118,12 @@ func RespServer(conf Configuration) error {
 			w.Write([]byte(r.Challenge))
 		}
 		if eventsAPIEvent.Type == slackevents.CallbackEvent {
-			postParams := slack.NewPostMessageParameters()
+			//postParams := slack.NewPostMessageParameters()
 			innerEvent := eventsAPIEvent.InnerEvent
 			switch ev := innerEvent.Data.(type) {
 			case *slackevents.AppMentionEvent:
-				slackClient.PostMessage(ev.Channel, "Yes, hello.", postParams)
+				//slackClient.PostMessage(ev.Channel, "Yes, hello.", postParams)
+				slackClient.PostMessage(ev.Channel, slack.MsgOptionText("Yes, hello?", false))
 			case *slackevents.MessageAction:
 				//Need to render a message while open dm
 			case *slackevents.MessageEvent:
@@ -178,7 +179,8 @@ func handleChatbotMessage(user string, text string, channel string) slack.PostMe
 	handledMessage, _ := userContext.HandleMessage(text)
 
 	if handledMessage != "" && channel != "" {
-		slackClient.PostMessage(channel, handledMessage, postParams)
+		slackClient.PostMessage(channel, slack.MsgOptionText(handledMessage, false))
+		//slackClient.PostMessage(channel, handledMessage, postParams)
 	}
 	currentScenario := userContext.GetCurrentScenario()
 
@@ -191,12 +193,13 @@ func handleChatbotMessage(user string, text string, channel string) slack.PostMe
 	response := transformedOutput
 
 	if err != nil {
-		slackClient.PostMessage(channel, "Error : "+err.Error(), postParams)
+		slackClient.PostMessage(channel, slack.MsgOptionText("Error : "+err.Error(), false))
 	}
-	postParams.Attachments = append(postParams.Attachments, attachment)
 	log.Debugf("PostParams : %+v", postParams)
 	if channel != "" {
-		slackClient.PostMessage(channel, response, postParams)
+		//slackClient.PostMessage(channel, response, postParams)
+		slackClient.PostMessage(channel, slack.MsgOptionText(response, false))
+		slackClient.PostMessage(channel, slack.MsgOptionAttachments(attachment))
 	}
 
 	return postParams
@@ -231,4 +234,3 @@ func generateSlackAttachment(output string, validKeywordList []string, invalidKe
 	//ret.Color = "Red"
 	return ret
 }
-
