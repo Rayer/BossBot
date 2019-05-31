@@ -18,7 +18,7 @@ type MsgSchedulerController struct {
 
 func (msc *MsgSchedulerController) HandleResponse(msgAct slackevents.MessageAction) (slack.WebhookMessage, error) {
 
-	if msgAct.CallbackId != "MsgSchOperation" {
+	if msgAct.CallbackID != "MsgSchOperation" {
 		return slack.WebhookMessage{Text: "Not correct handler"}, errors.Errorf("Not correct handler")
 	}
 	//Handler of MsgSchOperation
